@@ -1,10 +1,10 @@
-# sort! / sortperm / sortperm! — Backend Implementations (Source-Verified)
+# sort! / sortperm / sortperm! Backend Implementations (Source-Verified)
 
-## CUDA.jl — `src/sorting.jl` (1062 lines)
+## CUDA.jl `src/sorting.jl` (1062 lines)
 
 **Algorithm:** Custom GPU quicksort with dynamic parallelism  
 **Author:** @xaellison (Alex Ellison), original contribution  
-**Unique feature:** The only backend with its own sort kernel — not delegating to AK.jl
+**Unique feature:** The only backend with its own sort kernel not delegating to AK.jl
 
 ### Public API
 ```julia
@@ -38,7 +38,7 @@ sort!(A::AnyCuArray)
 
 ### Key Implementation Details
 
-**`flex_lt(a, b, eq, lt, by)`** — comparison with parity:
+**`flex_lt(a, b, eq, lt, by)`** comparison with parity:
 ```julia
 @inline function flex_lt(a, b, eq, lt, by)
     a′ = by(a); b′ = by(b)
@@ -49,13 +49,13 @@ When `eq=true` (even parity), equal elements satisfy `flex_lt`, so they get clas
 
 **`bubble_sort` (terminal case):** Parallel odd-even transposition sort in shared memory. For `M=blockDim.x` elements, runs `M` comparison phases (each phase swaps all odd-indexed or all even-indexed neighbors). Works correctly for any `M ≤ blockDim.x`.
 
-**`bitonic_median` (pivot selection):** Full bitonic sort of `blockDim.x` sampled elements in shared memory. Returns `swap[blockDim.x / 2]` — the median. Makes worst-case pivot selection astronomically unlikely.
+**`bitonic_median` (pivot selection):** Full bitonic sort of `blockDim.x` sampled elements in shared memory. Returns `swap[blockDim.x / 2]` the median. Makes worst-case pivot selection astronomically unlikely.
 
 **Dynamic parallelism requirement:** `@cuda dynamic=true` requires `CUDA.jl ≥ 3.0` and a Volta+ GPU (compute capability ≥ 7.0). Older hardware silently uses a non-recursive fallback.
 
 ---
 
-## AMDGPU.jl — `src/kernels/sort.jl` (~6 lines)
+## AMDGPU.jl `src/kernels/sort.jl` (~6 lines)
 
 **Algorithm:** Delegates entirely to AcceleratedKernels.jl merge sort  
 **Source-verified from user:**
@@ -71,11 +71,11 @@ Base.sortperm(x::AnyROCArray; kwargs...) =
     sortperm!(ROCArray(1:length(x)), x; kwargs...)
 ```
 
-**Design:** Three 1-liners. AK.jl handles all algorithmic complexity. `ROCArray(1:length(x))` allocates the index array on the ROC device before passing to `sortperm!`. `kwargs...` pass through `lt`, `by`, `rev`, `order` directly to AK — full feature parity with CPU sort.
+**Design:** Three 1-liners. AK.jl handles all algorithmic complexity. `ROCArray(1:length(x))` allocates the index array on the ROC device before passing to `sortperm!`. `kwargs...` pass through `lt`, `by`, `rev`, `order` directly to AK full feature parity with CPU sort.
 
 ---
 
-## oneAPI.jl — `src/sort.jl` (~6 lines)
+## oneAPI.jl `src/sort.jl` (~6 lines)
 
 **Algorithm:** Delegates entirely to AcceleratedKernels.jl merge sort  
 **Source-verified from user:**
@@ -95,23 +95,23 @@ Structurally identical to AMDGPU.jl, with `oneArray` instead of `AnyROCArray`.
 
 ---
 
-## Metal.jl — No Implementation
+## Metal.jl No Implementation
 
 The exhaustive audit confirms: **no `sort!`, `sortperm`, or `sortperm!` methods exist in Metal.jl.** When a user calls `sort!(A::MtlArray)`, Julia dispatch falls to `Base.sort!(A::AbstractVector)`, which calls `Base.sort!` → scalar indexing loop → errors with `allowscalar(false)`.
 
-Metal is unique in this gap. AMDGPU and oneAPI both added AK.jl delegates. Metal did not. The reason is likely that Metal had other priorities, not a technical limitation — AK.jl's merge sort runs correctly on Metal (it's used for accumulate!, as verified in the previous audit).
+Metal is unique in this gap. AMDGPU and oneAPI both added AK.jl delegates. Metal did not. The reason is likely that Metal had other priorities, not a technical limitation AK.jl's merge sort runs correctly on Metal (it's used for accumulate!, as verified in the previous audit).
 
 ---
 
-## AcceleratedKernels.jl — `src/sort/` (source-verified file listing)
+## AcceleratedKernels.jl `src/sort/` (source-verified file listing)
 
 Files (confirmed from GitHub directory listing):
-- `sort.jl` — public API: `AK.sort!`, `AK.sortperm!`
-- `merge_sort.jl` — core bottom-up merge sort kernel
-- `merge_sort_by_key.jl` — sort (values, keys) pairs — used for sortperm
-- `merge_sortperm.jl` — sortperm-specific co-sort
-- `utils.jl` — `binary_search`, `less_than` helpers
-- `cpu_sample_sort.jl` — fallback for very small arrays
+- `sort.jl` public API: `AK.sort!`, `AK.sortperm!`
+- `merge_sort.jl` core bottom-up merge sort kernel
+- `merge_sort_by_key.jl` sort (values, keys) pairs used for sortperm
+- `merge_sortperm.jl` sortperm-specific co-sort
+- `utils.jl` `binary_search`, `less_than` helpers
+- `cpu_sample_sort.jl` fallback for very small arrays
 
 ### `AK.sort!` Public API
 ```julia
@@ -192,15 +192,15 @@ end
 
 ---
 
-## GPUArrays.jl — No Implementation (Gap This PR Fills)
+## GPUArrays.jl No Implementation (Gap This PR Fills)
 
 Current state: no `sort!`, `sortperm`, or `sortperm!` in any file under `src/`. When called on JLArray (test backend) or any future backend:
 
 ```
 sort!(A::JLArray{Float32,1})
   Julia dispatch:
-    Step 1: JLArrays.jl  — no sort! method
-    Step 2: GPUArrays.jl — no sort! method  
+    Step 1: JLArrays.jl  no sort! method
+    Step 2: GPUArrays.jl no sort! method  
     Step 3: Base.sort!(A::AbstractVector)
       → in-place quicksort with scalar indexing
       → each comparison: A[i] reads GPU memory via scalar fallback
@@ -217,7 +217,7 @@ sort!(A::JLArray{Float32,1})
 | CUDA.jl | ✓ custom | ✗ missing | ✗ missing | GPU quicksort + dyn. parallelism | ~1062 |
 | AMDGPU.jl | ✓ AK.jl | ✓ AK.jl | ✓ AK.jl | AK merge sort | ~6 |
 | oneAPI.jl | ✓ AK.jl | ✓ AK.jl | ✓ AK.jl | AK merge sort | ~6 |
-| Metal.jl | ✗ missing | ✗ missing | ✗ missing | — | 0 |
-| GPUArrays.jl | ✗ missing | ✗ missing | ✗ missing | — | 0 |
+| Metal.jl | ✗ missing | ✗ missing | ✗ missing | | 0 |
+| GPUArrays.jl | ✗ missing | ✗ missing | ✗ missing | | 0 |
 
 **The PR adds 3 + 3 = 6 lines to GPUArrays.jl**, mirroring exactly what AMDGPU and oneAPI do, and provides the fallback that Metal and all future backends get for free.
