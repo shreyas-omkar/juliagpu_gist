@@ -1,0 +1,34 @@
+name: Clean Markdown Dashes
+
+on:
+  workflow_dispatch:   # manual one-click run
+
+jobs:
+  fix-dashes:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Replace em/en dashes in all Markdown files
+        run: |
+          echo "Searching markdown files..."
+          grep -rn "[—–]" --include="*.md" . || true
+
+          echo "Replacing unicode dashes with spaces..."
+          find . -type f -name "*.md" -exec sed -i 's/[—–]/ /g' {} +
+
+      - name: Commit and push changes
+        run: |
+          if git diff --quiet; then
+            echo "No dash problems found."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add .
+            git commit -m "Auto cleanup: remove unicode dashes from markdown"
+            git push
+          fi
