@@ -1,4 +1,4 @@
-# sort! / sortperm / sortperm! — Failure Demonstration
+# sort! / sortperm / sortperm! Failure Demonstration
 
 ## The Three Distinct Failure Modes
 
@@ -10,7 +10,7 @@ Unlike `reverse` (silent CPU fallback) and `mapreducedim!` (hard error inside GP
 | `sortperm(A)` | CPU scalar → ERROR | CPU scalar → ERROR | ✓ works |
 | `sortperm!(ix, A)` | CPU scalar → ERROR | CPU scalar → ERROR | ✓ works |
 
-The CUDA case is particularly subtle: `sort!` works fine, but `sortperm` silently degrades or errors — even on the most capable backend.
+The CUDA case is particularly subtle: `sort!` works fine, but `sortperm` silently degrades or errors even on the most capable backend.
 
 ---
 
@@ -52,11 +52,11 @@ A = cu(Float32[5.0, 3.0, 1.0, 4.0, 2.0])
 
 println("@which sortperm(::CuArray) = ", @which sortperm(A))
 # → sortperm(v::AbstractVector; ...) in Base at sort.jl:XXX
-# CPU method — even on CUDA!
+# CPU method even on CUDA!
 
 sortperm(A)
 # ERROR: Scalar indexing is disallowed.
-# This is a known CUDA.jl limitation — sort! works but sortperm is missing.
+# This is a known CUDA.jl limitation sort! works but sortperm is missing.
 ```
 
 ### Failure 3: sortperm on JLArray
@@ -80,9 +80,9 @@ sort!(A::JLArray{Float32,1})
 Julia dispatch search:
   JLArray  <:  AbstractGPUArray  <:  AbstractVector  <:  AbstractArray
 
-  Step 1: JLArrays.jl        — no sort! method defined
-  Step 2: GPUArrays.jl       — no sort! method defined
-  Step 3: Base.sort!         — Base.sort!(v::AbstractVector) FOUND
+  Step 1: JLArrays.jl        no sort! method defined
+  Step 2: GPUArrays.jl       no sort! method defined
+  Step 3: Base.sort!         Base.sort!(v::AbstractVector) FOUND
 
   → Base.sort!(A) calls:
       Base._sort!(A, Base.DEFAULT_UNSTABLE, Base.Order.Forward, ...)
@@ -116,15 +116,15 @@ sortperm!(similar(A, Int), A)   # ERROR: scalar indexing
 
 # Real-world use cases that break:
 ix = sortperm(A)               # Top-k selection
-B = A[ix[end-9:end]]           # "Top 10" elements — fails at sortperm
+B = A[ix[end-9:end]]           # "Top 10" elements fails at sortperm
 
 # k-nearest neighbor (GPU ML inference):
 dists = pairwise_distances(query, database)   # works
-ix    = sortperm(dists)                        # ERROR — breaks kNN
+ix    = sortperm(dists)                        # ERROR breaks kNN
 nn    = database[:, ix[1:k]]                  # never reached
 
 # Ranking in training loop:
-ranks = sortperm(loss_values)   # ERROR — can't rank examples by loss
+ranks = sortperm(loss_values)   # ERROR can't rank examples by loss
 ```
 
 ---
@@ -143,7 +143,7 @@ Array size    allowscalar(true)    GPU merge sort    Ratio
 1M            ~24 s                ~3.2 ms           7500×
 ```
 
-The ratio grows super-linearly because each GPU scalar read has fixed ~400-cycle latency, and the sort does O(n log n) reads. At n=1M, that's ~20M scalar reads × 400 cycles = ~4 seconds of pure latency — before any actual sorting work.
+The ratio grows super-linearly because each GPU scalar read has fixed ~400-cycle latency, and the sort does O(n log n) reads. At n=1M, that's ~20M scalar reads × 400 cycles = ~4 seconds of pure latency before any actual sorting work.
 
 ---
 
@@ -156,10 +156,10 @@ A concrete real-world failure scenario from GPU ML inference:
 # Backend: future custom GPUArray type (e.g., vendor-specific AI accelerator)
 
 function knn_search(query::AnyGPUArray, database::AnyGPUArray, k::Int)
-    # Step 1: compute distances — works (mapreducedim! now fixed by PR #4)
+    # Step 1: compute distances works (mapreducedim! now fixed by PR #4)
     dists = vec(sum((database .- query).^2; dims=1))
     
-    # Step 2: find k nearest — FAILS HERE
+    # Step 2: find k nearest FAILS HERE
     ix = sortperm(dists)          # ERROR on any backend without sort
     # ↑ This line causes: Scalar indexing is disallowed
     # OR: silently runs on CPU taking 10 seconds for a 1M-vector database
