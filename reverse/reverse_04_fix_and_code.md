@@ -1,4 +1,4 @@
-# reverse / reverse! — The Fix
+# reverse / reverse!   The Fix
 
 ## Design Decisions
 
@@ -18,7 +18,7 @@ KernelAbstractions.jl generates the correct intrinsic per backend at compile tim
 **One source file, all backends.**
 
 ### 4. Dispatch at `AnyGPUArray`, not a specific type
-CUDA.jl's `AnyCuArray` and AMDGPU.jl's `AnyROCArray` are more specific — they always win.  
+CUDA.jl's `AnyCuArray` and AMDGPU.jl's `AnyROCArray` are more specific   they always win.  
 The new method is only ever reached by: oneAPI, Metal, JLArray, and any future backend.  
 **Zero changes to any vendor package.**
 
@@ -26,7 +26,7 @@ The new method is only ever reached by: oneAPI, Metal, JLArray, and any future b
 
 ## Complete Implementation
 
-File: `GPUArrays.jl/src/host/base.jl` — add after existing `issorted_kernel!`
+File: `GPUArrays.jl/src/host/base.jl`   add after existing `issorted_kernel!`
 
 ```julia
 # ── Out-of-place ───────────────────────────────────────────────────────────────
@@ -104,4 +104,4 @@ reverse(A::JLArray)      →  GPUArrays KA kernel  ✓  (fixed)
 reverse(A::<future>)     →  GPUArrays KA kernel  ✓  (fixed)
 ```
 
-Julia's dispatch guarantees this automatically — more specific types always win. No vendor package is touched.
+Julia's dispatch guarantees this automatically   more specific types always win. No vendor package is touched.

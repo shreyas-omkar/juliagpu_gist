@@ -1,4 +1,4 @@
-# mapreducedim! — Performance Analysis
+# mapreducedim!   Performance Analysis
 
 ## Bandwidth Model
 
@@ -13,7 +13,7 @@
 
 CPU workaround (`Array(A) |> sum`): PCIe transfer to host (4n bytes at ~12 GB/s) + host reduction + no transfer back (scalar output). Total: ~1×4n bytes at PCIe bandwidth.
 
-Note: unlike the other three operations, the CPU workaround here is slightly cheaper (1 pass vs the others' 3 passes) — but the GPU kernel still wins due to the 30:1 bandwidth ratio.
+Note: unlike the other three operations, the CPU workaround here is slightly cheaper (1 pass vs the others' 3 passes)   but the GPU kernel still wins due to the 30:1 bandwidth ratio.
 
 ---
 
@@ -40,7 +40,7 @@ For `sum(A; dims=2)` on an M×N matrix, the output is M×1. There are M independ
 
 This is **perfectly scalable**: doubling M doubles the parallelism, not the time. The kernel is limited by memory bandwidth, not by reduction depth.
 
-For large M and small N (e.g. 10000×16), each threadgroup only reduces 16 elements — far less than the group size of 256. The neutral-element padding ensures correctness, but 240/256 threads are idle for most of the reduction. Future optimisation: choose group size dynamically based on N.
+For large M and small N (e.g. 10000×16), each threadgroup only reduces 16 elements   far less than the group size of 256. The neutral-element padding ensures correctness, but 240/256 threads are idle for most of the reduction. Future optimisation: choose group size dynamically based on N.
 
 ---
 
@@ -53,7 +53,7 @@ For large M and small N (e.g. 10000×16), each threadgroup only reduces 16 eleme
 | `findall` | 6 | ~15× | #3 |
 | `mapreducedim!` | 2 | ~30× | #4 |
 
-`mapreducedim!` matches `reverse` for efficiency — both are 2-pass bandwidth-bound operations. The tree reduction happens entirely in shared memory (no extra global memory pass), keeping the pass count at 2.
+`mapreducedim!` matches `reverse` for efficiency   both are 2-pass bandwidth-bound operations. The tree reduction happens entirely in shared memory (no extra global memory pass), keeping the pass count at 2.
 
 ---
 

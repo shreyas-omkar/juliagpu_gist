@@ -1,4 +1,4 @@
-# reverse / reverse! — Failure Demonstration
+# reverse / reverse!   Failure Demonstration
 
 ## Reproducing the Failure
 
@@ -49,9 +49,9 @@ User calls:   reverse(A::JLArray{Float32,1})
 Julia dispatch:
   JLArray  <:  AbstractGPUArray  <:  AbstractArray
 
-  Step 1: JLArrays.jl   — no reverse method  ✗
-  Step 2: GPUArrays.jl  — no reverse method  ✗
-  Step 3: Base          — reverse(::AbstractVector) FOUND
+  Step 1: JLArrays.jl     no reverse method  ✗
+  Step 2: GPUArrays.jl    no reverse method  ✗
+  Step 3: Base            reverse(::AbstractVector) FOUND
 
 → Base.reverse runs:
       for i in 1:n÷2
@@ -65,11 +65,11 @@ Julia dispatch:
 
 ## Two Failure Modes
 
-### Mode 1: `allowscalar(false)` — Hard Error (recommended setting)
+### Mode 1: `allowscalar(false)`   Hard Error (recommended setting)
 Throws immediately at the first `getindex` inside `Base.array.jl:2170`.  
 Operation is completely unusable. Identical behaviour on oneAPI.jl and Metal.jl.
 
-### Mode 2: `allowscalar(true)` — Silent Degradation (default)
+### Mode 2: `allowscalar(true)`   Silent Degradation (default)
 The scalar swap loop executes on the CPU element by element.  
 Each element incurs a **separate device-to-host transfer**.  
 Result is numerically correct. **No warning is emitted.**  

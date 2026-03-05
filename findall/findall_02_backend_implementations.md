@@ -1,10 +1,10 @@
-# findall — Backend Implementations
+# findall   Backend Implementations
 
 All four vendor backends use the **same two-step stream compaction algorithm**. What differs is only the kernel launch syntax and, in Metal's case, a memory storage qualifier.
 
 ---
 
-## CUDA.jl — [`src/indexing.jl`](https://github.com/JuliaGPU/CUDA.jl/blob/master/src/indexing.jl)
+## CUDA.jl   [`src/indexing.jl`](https://github.com/JuliaGPU/CUDA.jl/blob/master/src/indexing.jl)
 
 - Step 1: own `cumsum` implementation
 - Step 2: `@cuda`-launched scatter kernel
@@ -38,7 +38,7 @@ end
 
 ---
 
-## AMDGPU.jl — [`src/indexing.jl`](https://github.com/JuliaGPU/AMDGPU.jl/blob/master/src/indexing.jl)
+## AMDGPU.jl   [`src/indexing.jl`](https://github.com/JuliaGPU/AMDGPU.jl/blob/master/src/indexing.jl)
 
 Structure is identical to CUDA.jl. Only the intrinsics change:
 
@@ -59,7 +59,7 @@ end
 
 ---
 
-## oneAPI.jl — [`src/indexing.jl`](https://github.com/JuliaGPU/oneAPI.jl/blob/master/src/indexing.jl)
+## oneAPI.jl   [`src/indexing.jl`](https://github.com/JuliaGPU/oneAPI.jl/blob/master/src/indexing.jl)
 
 Kernel must be defined **outside** the function body (Intel compiler requirement).  
 Thread index intrinsic: `get_global_id()`.  
@@ -87,10 +87,10 @@ end
 
 ---
 
-## Metal.jl — [`src/indexing.jl`](https://github.com/JuliaGPU/Metal.jl/blob/master/src/indexing.jl)
+## Metal.jl   [`src/indexing.jl`](https://github.com/JuliaGPU/Metal.jl/blob/master/src/indexing.jl)
 
 **Notable difference:** uses `Metal.SharedStorage` (unified CPU+GPU memory) for the indices array.  
-This means `indices[end]` can be read directly — **no `@allowscalar` needed**.
+This means `indices[end]` can be read directly   **no `@allowscalar` needed**.
 
 ```julia
 function Base.findall(bools::WrappedMtlArray{Bool})
@@ -119,7 +119,7 @@ function Base.findall(bools::WrappedMtlArray{Bool})
 end
 ```
 
-**Why Metal can do this:** Apple Silicon has unified memory — CPU and GPU share the same physical DRAM, no PCIe bus. `SharedStorage` allocates into this shared region. The other three backends (CUDA, AMDGPU, oneAPI) run on discrete GPUs with separate memory, so they must use `@allowscalar` to do a single device-to-host scalar read.
+**Why Metal can do this:** Apple Silicon has unified memory   CPU and GPU share the same physical DRAM, no PCIe bus. `SharedStorage` allocates into this shared region. The other three backends (CUDA, AMDGPU, oneAPI) run on discrete GPUs with separate memory, so they must use `@allowscalar` to do a single device-to-host scalar read.
 
 The `GPUArrays.jl` fallback uses `@allowscalar` (matching CUDA/AMDGPU/oneAPI), since it must be correct on discrete-GPU architectures.
 

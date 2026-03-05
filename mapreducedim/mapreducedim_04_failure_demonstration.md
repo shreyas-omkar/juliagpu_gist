@@ -1,8 +1,8 @@
-# mapreducedim! — Failure Demonstration
+# mapreducedim!   Failure Demonstration
 
 ## The Unique Nature of This Failure
 
-Unlike `reverse`, `findall`, and `accumulate!` — where the failure requires dispatch to fall all the way to `Base` — `mapreducedim!` fails **inside GPUArrays.jl itself**. The stub throws unconditionally, with no scalar indexing escape hatch, no silent degradation path, no workaround.
+Unlike `reverse`, `findall`, and `accumulate!`   where the failure requires dispatch to fall all the way to `Base`   `mapreducedim!` fails **inside GPUArrays.jl itself**. The stub throws unconditionally, with no scalar indexing escape hatch, no silent degradation path, no workaround.
 
 **Every call to `sum`, `prod`, `maximum`, `minimum`, `any`, or `all` on any non-vendor backend hard-errors. Always.**
 
@@ -20,7 +20,7 @@ println("Attempting sum(A) on JLArray:")
 sum(A)
 ```
 
-Note: `allowscalar` setting is **irrelevant** — the error fires before any indexing occurs.
+Note: `allowscalar` setting is **irrelevant**   the error fires before any indexing occurs.
 
 ---
 
@@ -61,8 +61,8 @@ GPUArrays.mapreducedim!(identity, +, R, A; init=0f0)
 
   Julia dispatch:
     JLArray  <:  AbstractGPUArray  <:  AbstractArray
-    Step 1: JLArrays.jl   — no mapreducedim! method  ✗
-    Step 2: GPUArrays.jl  — AnyGPUArray stub FOUND   ← hits here
+    Step 1: JLArrays.jl     no mapreducedim! method  ✗
+    Step 2: GPUArrays.jl    AnyGPUArray stub FOUND   ← hits here
 
   → error("mapreducedim! not implemented")
 ```
@@ -92,12 +92,12 @@ norm(A)                         # ERROR (uses sum internally)
 mean(A)                         # ERROR (uses sum internally)
 ```
 
-For a new backend author implementing the GPUArrays.jl interface, the very first test they'd write — `@test sum(jl([1f0, 2f0, 3f0])) == 6f0` — throws immediately.
+For a new backend author implementing the GPUArrays.jl interface, the very first test they'd write   `@test sum(jl([1f0, 2f0, 3f0])) == 6f0`   throws immediately.
 
 ---
 
 ## Why No Silent Fallback Exists
 
-`reverse` and `findall` silently fall to `Base`, which at least produces correct (if slow) output with `allowscalar(true)`. `mapreducedim!` has no such path: the stub throws before any data access. There is no workaround except `Array(A) |> sum` — an explicit host-side detour that the user must write manually.
+`reverse` and `findall` silently fall to `Base`, which at least produces correct (if slow) output with `allowscalar(true)`. `mapreducedim!` has no such path: the stub throws before any data access. There is no workaround except `Array(A) |> sum`   an explicit host-side detour that the user must write manually.
 
 This is the highest-priority fix in the project.

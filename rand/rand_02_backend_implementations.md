@@ -1,18 +1,18 @@
-# rand / randn — Backend Implementations (Source-Verified)
+# rand / randn   Backend Implementations (Source-Verified)
 
 ## Summary Matrix
 
 | Backend | `rand!` | `randn!` | `rand` (out-of-place) | `randn` (out-of-place) | RNG Type |
 |---|---|---|---|---|---|
-| CUDA.jl | ✓ custom kernel | ✓ Box–Muller kernel | ✓ | ✓ | Philox2x32 (device) |
+| CUDA.jl | ✓ custom kernel | ✓ Box Muller kernel | ✓ | ✓ | Philox2x32 (device) |
 | AMDGPU.jl | ✓ rocRAND | ✓ rocRAND | ✓ | ✓ | XORWOW (rocRAND) |
-| Metal.jl | ✓ custom kernel | ✓ Box–Muller kernel | ✓ (via MPS) | ✓ | Xorshift128+ (device) |
+| Metal.jl | ✓ custom kernel | ✓ Box Muller kernel | ✓ (via MPS) | ✓ | Xorshift128+ (device) |
 | oneAPI.jl | ✓ (GPUArrays) | ✓ (GPUArrays) | partial | partial | Xorshift128+ (GPUArrays) |
-| GPUArrays.jl | ✓ Xorshift128+ | ✓ Box–Muller | **missing** | **missing** | Xorshift128+ |
+| GPUArrays.jl | ✓ Xorshift128+ | ✓ Box Muller | **missing** | **missing** | Xorshift128+ |
 
 ---
 
-## CUDA.jl — `src/random.jl` (353 lines, source-verified)
+## CUDA.jl   `src/random.jl` (353 lines, source-verified)
 
 Two separate RNG systems coexist:
 
@@ -59,7 +59,7 @@ function Random.rand!(rng::RNG, A::AnyCuArray)
 end
 ```
 
-**randn! kernel** (source-verified, Box–Muller):
+**randn! kernel** (source-verified, Box Muller):
 ```julia
 function Random.randn!(rng::RNG, A::AnyCuArray{<:Union{AbstractFloat,Complex{<:AbstractFloat}}})
     function kernel(A::AbstractArray{T}, seed, counter) where {T<:Real}
@@ -109,9 +109,9 @@ end
 
 ---
 
-## AMDGPU.jl — `src/rand/random.jl` (180 lines, source-verified)
+## AMDGPU.jl   `src/rand/random.jl` (180 lines, source-verified)
 
-Uses **rocRAND** — AMD's counterpart to cuRAND. The RNG object wraps a `rocrand_generator` handle:
+Uses **rocRAND**   AMD's counterpart to cuRAND. The RNG object wraps a `rocrand_generator` handle:
 
 ```julia
 mutable struct RNG <: Random.AbstractRNG
@@ -148,11 +148,11 @@ end
 # inplace_pow2 handles non-pow2 by allocating padded buffer, copying back
 ```
 
-**Critical difference from CUDA:** AMDGPU `randn!` accepts `mean` and `stddev` kwargs — it can generate N(μ, σ²) directly without post-processing. CUDA's Box–Muller kernel always generates N(0,1).
+**Critical difference from CUDA:** AMDGPU `randn!` accepts `mean` and `stddev` kwargs   it can generate N(μ, σ²) directly without post-processing. CUDA's Box Muller kernel always generates N(0,1).
 
 ---
 
-## Metal.jl — `src/random.jl` (280 lines, source-verified)
+## Metal.jl   `src/random.jl` (280 lines, source-verified)
 
 Metal.jl uses **two separate systems** for rand vs randn:
 
@@ -165,7 +165,7 @@ mutable struct RNG <: AbstractRNG
 end
 ```
 
-The `rand!` and `randn!` kernels are **structurally identical to CUDA.jl** — same grid-stride loop, same Box–Muller for randn!, same fixed `threads=32` for reproducibility, same `XXX` comment. Only the kernel launch macro differs: `@metal threads groups` vs `@cuda threads blocks`.
+The `rand!` and `randn!` kernels are **structurally identical to CUDA.jl**   same grid-stride loop, same Box Muller for randn!, same fixed `threads=32` for reproducibility, same `XXX` comment. Only the kernel launch macro differs: `@metal threads groups` vs `@cuda threads blocks`.
 
 Metal intrinsic names differ:
 ```julia
@@ -182,22 +182,22 @@ using ..MPS: MPSVector, _mpsmat_rand!,
              MPSMatrixRandomNormalDistributionDescriptor
 ```
 
-For out-of-place `rand` and `randn`, Metal.jl uses **Apple's MPS random number generators** — hardware-accelerated on Apple Silicon. This gives better performance than the custom kernel for large arrays.
+For out-of-place `rand` and `randn`, Metal.jl uses **Apple's MPS random number generators**   hardware-accelerated on Apple Silicon. This gives better performance than the custom kernel for large arrays.
 
 ---
 
-## oneAPI.jl — `src/random.jl` (22 lines, source-verified)
+## oneAPI.jl   `src/random.jl` (22 lines, source-verified)
 
-The most minimal implementation — fully delegates to GPUArrays:
+The most minimal implementation   fully delegates to GPUArrays:
 
 ```julia
 gpuarrays_rng() = GPUArrays.default_rng(oneArray)
 
-# In-place — uses GPUArrays Xorshift128+ kernel
+# In-place   uses GPUArrays Xorshift128+ kernel
 Random.rand!(A::oneWrappedArray)  = Random.rand!(gpuarrays_rng(), A)
 Random.randn!(A::oneWrappedArray) = Random.randn!(gpuarrays_rng(), A)
 
-# Out-of-place — local function (not Base.rand override!)
+# Out-of-place   local function (not Base.rand override!)
 rand(T::Type, dims::Dims)  = Random.rand!(oneArray{T}(undef, dims...))
 randn(T::Type, dims::Dims) = Random.randn!(oneArray{T}(undef, dims...))
 ```
@@ -206,7 +206,7 @@ randn(T::Type, dims::Dims) = Random.randn!(oneArray{T}(undef, dims...))
 
 ---
 
-## GPUArrays.jl — Existing `rand!` / `randn!` Kernels
+## GPUArrays.jl   Existing `rand!` / `randn!` Kernels
 
 GPUArrays **already has** working `rand!` and `randn!` via `GPUArrays.RNG`:
 
@@ -217,12 +217,12 @@ struct RNG <: AbstractRNG
 end
 
 # rand! kernel: Xorshift128+ per thread, grid-stride loop
-# randn! kernel: Box–Muller on top of rand!, pair production
+# randn! kernel: Box Muller on top of rand!, pair production
 ```
 
 The `GPUArrays.default_rng(AT)` function returns a task-local `GPUArrays.RNG` for array type `AT`. This is what oneAPI delegates to.
 
-**What is missing is `Base.rand(AT, T, dims...)` and `Base.randn(AT, T, dims...)`** — the convenience out-of-place constructors. These should:
+**What is missing is `Base.rand(AT, T, dims...)` and `Base.randn(AT, T, dims...)`**   the convenience out-of-place constructors. These should:
 1. Allocate `A = AT{T}(undef, dims)`
 2. Fill via `Random.rand!(GPUArrays.default_rng(AT), A)`
 3. Return `A`
@@ -235,10 +235,10 @@ Three lines per function.
 
 ```
 rand!(rng::GPUArrays.RNG, A::AnyGPUArray)   ← EXISTS (Xorshift128+ kernel)
-randn!(rng::GPUArrays.RNG, A::AnyGPUArray)  ← EXISTS (Box–Muller kernel)
+randn!(rng::GPUArrays.RNG, A::AnyGPUArray)  ← EXISTS (Box Muller kernel)
 
 Base.rand(::Type{<:AnyGPUArray}, T, dims)   ← MISSING for JLArray/future
 Base.randn(::Type{<:AnyGPUArray}, T, dims)  ← MISSING for JLArray/future
 ```
 
-Unlike all previous PRs, this one doesn't need a new kernel — it just needs thin out-of-place wrappers that connect `Base.rand` dispatch to the existing `GPUArrays.RNG` machinery.
+Unlike all previous PRs, this one doesn't need a new kernel   it just needs thin out-of-place wrappers that connect `Base.rand` dispatch to the existing `GPUArrays.RNG` machinery.

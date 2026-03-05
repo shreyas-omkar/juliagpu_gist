@@ -1,4 +1,4 @@
-# sort! / sortperm / sortperm! — Test Suite
+# sort! / sortperm / sortperm!   Test Suite
 
 File: `test/testsuite/sort.jl` (new file, included from `test/testsuite.jl`)
 
@@ -76,14 +76,14 @@ end
 | `rev=true` | Reverse ordering kwarg passes through to AK |
 | Empty array | No kernel launch on empty input |
 | Single/two elements | Boundary conditions in merge pass logic |
-| `n=1025` non-power-of-2 | Last merge block is smaller — padding logic |
+| `n=1025` non-power-of-2 | Last merge block is smaller   padding logic |
 | `n=10^6` large | All `ceil(log2(10^6))=20` passes execute correctly |
-| Already sorted | Idempotency — sorting a sorted array gives same result |
+| Already sorted | Idempotency   sorting a sorted array gives same result |
 | Reverse sorted | Worst-case input for some algorithms (not merge sort) |
 | `by=abs` | Custom sort key passes through |
 | `sortperm` | Index array is correct permutation |
 | Stability | Equal elements preserve original index order |
-| sortperm consistency | `A[sortperm(A)] == sort(A)` — fundamental invariant |
+| sortperm consistency | `A[sortperm(A)] == sort(A)`   fundamental invariant |
 | Int32 | Non-Float element type works |
 
 ---
@@ -103,10 +103,10 @@ A = Float32[3.0, 1.0, 2.0, 1.0, 3.0, 2.0]
 # sorted order: 1(idx=2), 1(idx=4), 2(idx=3), 2(idx=6), 3(idx=1), 3(idx=5)
 # → ix = [2, 4, 3, 6, 1, 5]
 
-# Unstable would give: [4, 2, ...] or [6, 3, ...] — wrong!
+# Unstable would give: [4, 2, ...] or [6, 3, ...]   wrong!
 ```
 
-AK.jl's merge sort is guaranteed stable because it uses `<=` (not `<`) in the merge comparison, ensuring left-half elements win ties — which preserves original order across all passes.
+AK.jl's merge sort is guaranteed stable because it uses `<=` (not `<`) in the merge comparison, ensuring left-half elements win ties   which preserves original order across all passes.
 
 ---
 
@@ -120,4 +120,4 @@ The mathematical invariant that must hold for any correct `sortperm`:
 @test A[sortperm(A)] ≈ sort(A)
 ```
 
-This test catches bugs where the index array and value sorting get out of sync during the co-sort — a subtle bug that only appears when values and indices are merged separately.
+This test catches bugs where the index array and value sorting get out of sync during the co-sort   a subtle bug that only appears when values and indices are merged separately.

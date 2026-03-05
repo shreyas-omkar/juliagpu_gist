@@ -1,4 +1,4 @@
-# accumulate! / cumsum / cumprod — Performance Analysis
+# accumulate! / cumsum / cumprod   Performance Analysis
 
 ## Why the Performance Case Is Stronger Than `reverse`
 

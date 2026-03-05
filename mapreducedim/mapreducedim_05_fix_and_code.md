@@ -1,10 +1,10 @@
-# mapreducedim! — The Fix: Design Decisions and Implementation
+# mapreducedim!   The Fix: Design Decisions and Implementation
 
 ## Design Decisions
 
 ### 1. Two-kernel strategy: reduction + multi-block combine
 A single kernel cannot efficiently handle all reduction shapes. Two kernels are used:
-- `mapreducedim_kernel!` — tiled shared-memory reduction; one threadgroup per output element, each handling T input elements
+- `mapreducedim_kernel!`   tiled shared-memory reduction; one threadgroup per output element, each handling T input elements
 - For inputs where the slice exceeds T elements: multiple threadgroups per output element, with a second combine pass
 
 This matches the structural pattern used by CUDA.jl and AMDGPU.jl.
@@ -28,18 +28,18 @@ Used to: (a) initialise `R` before reduction, (b) pad shared memory for out-of-b
 No new neutral element logic needed.
 
 ### 6. No changes to the orchestration layer
-`Base.sum`, `_mapreduce`, `neutral_element` — all already correct.  
+`Base.sum`, `_mapreduce`, `neutral_element`   all already correct.  
 The fix is surgical: **only the stub is replaced**. The ~200 lines above it are untouched.
 
 ### 7. Dispatch at `AnyGPUArray`
 All four vendor `mapreducedim!` methods dispatch on more specific types.  
-The KA implementation is the `AnyGPUArray` fallback — never reached for any existing vendor.
+The KA implementation is the `AnyGPUArray` fallback   never reached for any existing vendor.
 
 ---
 
 ## Complete Implementation
 
-File: `GPUArrays.jl/src/host/mapreduce.jl` — replace the `error()` stub
+File: `GPUArrays.jl/src/host/mapreduce.jl`   replace the `error()` stub
 
 ```julia
 # ── Index helper ───────────────────────────────────────────────────────────────
@@ -99,7 +99,7 @@ function GPUArrays.mapreducedim!(f, op, R::AnyGPUArray{T}, A::AnyGPUArray;
     reduce_dims = ntuple(d -> size(R, d) == 1 && size(A, d) > 1, ndims(A))
 
     backend  = get_backend(A)
-    gs       = 256                  # group size — tunable
+    gs       = 256                  # group size   tunable
     n_groups = prod(size(R))        # one group per output element
 
     mapreducedim_kernel!(backend)(
@@ -135,4 +135,4 @@ sum(A::<future>)       →  GPUArrays KA tiled kernel       ✓  (fixed)
 
 The same fix propagates automatically to **all** high-level reductions:
 `prod`, `any`, `all`, `maximum`, `minimum`, `mapreduce`, `sum(f, A)`, `maximum(f, A)`,
-and all their `dims=` variants — all route through `mapreducedim!`.
+and all their `dims=` variants   all route through `mapreducedim!`.

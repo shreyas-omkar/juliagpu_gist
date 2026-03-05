@@ -1,8 +1,8 @@
-# mapreducedim! — Existing GPUArrays.jl Architecture
+# mapreducedim!   Existing GPUArrays.jl Architecture
 
 ## What's Already There
 
-`mapreducedim!` is unique among the four PRs in this project: GPUArrays.jl already has a **complete orchestration layer** in [`src/host/mapreduce.jl`](https://github.com/JuliaGPU/GPUArrays.jl/blob/main/src/host/mapreduce.jl). The missing piece is not the plumbing — it is the kernel itself.
+`mapreducedim!` is unique among the four PRs in this project: GPUArrays.jl already has a **complete orchestration layer** in [`src/host/mapreduce.jl`](https://github.com/JuliaGPU/GPUArrays.jl/blob/main/src/host/mapreduce.jl). The missing piece is not the plumbing   it is the kernel itself.
 
 ---
 
@@ -70,7 +70,7 @@ This is a deliberate placeholder. The comment above it in the original source re
 
 All four vendor backends implement this function for their specific array types and never hit the stub. The stub only fires for: JLArray, future backends, user-defined GPU array types.
 
-PR #4 replaces this stub with a KA tiled reduction kernel — making the placeholder real for all backends that lack a vendor implementation.
+PR #4 replaces this stub with a KA tiled reduction kernel   making the placeholder real for all backends that lack a vendor implementation.
 
 ---
 

@@ -1,4 +1,4 @@
-# rand / randn — Algorithm Deep Dive
+# rand / randn   Algorithm Deep Dive
 
 ## What These Functions Do
 
@@ -9,13 +9,13 @@
 | `rand(T, dims...)` | Allocates new GPU array, fills U(0,1) | new array |
 | `randn(T, dims...)` | Allocates new GPU array, fills N(0,1) | new array |
 
-The default element type is `Float32` across all backends — matching GPU-native precision and ML conventions.
+The default element type is `Float32` across all backends   matching GPU-native precision and ML conventions.
 
 ---
 
 ## The Uniqueness of rand/randn vs All Other Operations
 
-Every other operation in this project (reverse, accumulate, findall, mapreducedim, sort) reads input → transforms → writes output. **rand and randn have no input array at all.** They are pure generation — each thread must independently produce a statistically independent random value from a shared seed.
+Every other operation in this project (reverse, accumulate, findall, mapreducedim, sort) reads input → transforms → writes output. **rand and randn have no input array at all.** They are pure generation   each thread must independently produce a statistically independent random value from a shared seed.
 
 This creates a fundamentally different problem: **how do you give n threads n different, statistically independent random numbers without communication?**
 
@@ -25,9 +25,9 @@ The answer is a **counter-based PRNG** where each thread's state is a determinis
 
 ## Algorithm 1: GPUArrays.jl Built-in RNG (Xorshift128+)
 
-Source: `GPUArrays.jl/src/host/random.jl` — this is the only operation where **GPUArrays already has a working kernel** (`[CAOM G] rand!`). The `G` flag in the audit confirms this.
+Source: `GPUArrays.jl/src/host/random.jl`   this is the only operation where **GPUArrays already has a working kernel** (`[CAOM G] rand!`). The `G` flag in the audit confirms this.
 
-GPUArrays implements a **Xorshift128+** PRNG. This is the same algorithm used in JavaScript V8 and many browser implementations — extremely fast, good statistical quality for most purposes, 128-bit state.
+GPUArrays implements a **Xorshift128+** PRNG. This is the same algorithm used in JavaScript V8 and many browser implementations   extremely fast, good statistical quality for most purposes, 128-bit state.
 
 ### Xorshift128+ Algorithm
 
@@ -73,7 +73,7 @@ Output: 64-bit integer, converted to float via IEEE bit manipulation
 end
 ```
 
-The `state` array is stored in a `GPUArrays.RNG` object — `NTuple{4, UInt32}` per thread position, sized to `MAX_THREADS_PER_BLOCK` (typically 1024). Each task gets its own `RNG` via `GPUArrays.default_rng(ArrayType)`.
+The `state` array is stored in a `GPUArrays.RNG` object   `NTuple{4, UInt32}` per thread position, sized to `MAX_THREADS_PER_BLOCK` (typically 1024). Each task gets its own `RNG` via `GPUArrays.default_rng(ArrayType)`.
 
 ### Float Conversion
 
@@ -93,9 +93,9 @@ end
 
 ---
 
-## Algorithm 2: Box–Muller Transform for randn!
+## Algorithm 2: Box Muller Transform for randn!
 
-The **Box–Muller transform** converts two independent U(0,1) samples into two independent N(0,1) samples. It is exact (not approximate), numerically stable, and requires only `log`, `sqrt`, `cos`, `sin` — all of which are single GPU instructions.
+The **Box Muller transform** converts two independent U(0,1) samples into two independent N(0,1) samples. It is exact (not approximate), numerically stable, and requires only `log`, `sqrt`, `cos`, `sin`   all of which are single GPU instructions.
 
 ### Mathematical Derivation
 
@@ -125,7 +125,7 @@ Both Z0, Z1 ~ N(0,1) ✓
 
 ### GPU-Specific Optimization: Pair Production
 
-Because Box–Muller produces **two** normals per call, the kernel can write to positions `i` and `j = i + stride` simultaneously, halving the number of RNG calls needed and maximizing arithmetic intensity:
+Because Box Muller produces **two** normals per call, the kernel can write to positions `i` and `j = i + stride` simultaneously, halving the number of RNG calls needed and maximizing arithmetic intensity:
 
 ```julia
 # From CUDA.jl and Metal.jl randn! kernel (source-verified):
@@ -152,19 +152,19 @@ while offset < length(A)
 end
 ```
 
-The `while U1 == zero(T)` guard prevents `log(0) = -Inf`. In practice this fires with probability 2^-24 for Float32 — essentially never, but required for correctness.
+The `while U1 == zero(T)` guard prevents `log(0) = -Inf`. In practice this fires with probability 2^-24 for Float32   essentially never, but required for correctness.
 
 ### Complex randn!
 
 For `Complex{T}` arrays (used in signal processing and quantum simulation):
 
 ```julia
-# Complex Box–Muller (from CUDA.jl and Metal.jl source):
+# Complex Box Muller (from CUDA.jl and Metal.jl source):
 Z0 = sqrt(-log(U1)) * cos(T(2π) * U2)   # note: no factor of 2 in sqrt
 Z1 = sqrt(-log(U1)) * sin(T(2π) * U2)
 A[i] = complex(Z0, Z1)
 # Each complex element has real and imaginary parts both ~ N(0, 1/2)
-# → |A[i]|² ~ Exponential(1) — correct for complex Gaussian
+# → |A[i]|² ~ Exponential(1)   correct for complex Gaussian
 ```
 
 ---
@@ -173,7 +173,7 @@ A[i] = complex(Z0, Z1)
 
 ### CUDA: cuRAND + Philox2x32
 
-CUDA.jl's primary RNG for rand! is **not** Xorshift128+. It uses cuRAND (NVIDIA's proprietary random number library) with the **Philox2x32** counter-based PRNG when called via `CUDA.CURAND.RNG`. However, the *native* CUDA.jl RNG (used when no explicit RNG is specified) uses a custom kernel with `Random.default_rng()` on-device — which maps to a Philox2x32 counter.
+CUDA.jl's primary RNG for rand! is **not** Xorshift128+. It uses cuRAND (NVIDIA's proprietary random number library) with the **Philox2x32** counter-based PRNG when called via `CUDA.CURAND.RNG`. However, the *native* CUDA.jl RNG (used when no explicit RNG is specified) uses a custom kernel with `Random.default_rng()` on-device   which maps to a Philox2x32 counter.
 
 Philox2x32 is a **counter-based** PRNG from Random123:
 ```
@@ -188,11 +188,11 @@ Step (Philox2x32-10 = 10 rounds):
   return counter
 ```
 
-Key property: **skippable** — you can jump to the state at position N in O(1) time. This lets each thread start at `counter = thread_global_index` without any communication.
+Key property: **skippable**   you can jump to the state at position N in O(1) time. This lets each thread start at `counter = thread_global_index` without any communication.
 
 ### AMDGPU: rocRAND
 
-AMDGPU.jl uses **rocRAND** — AMD's counterpart to cuRAND, with identical high-level API:
+AMDGPU.jl uses **rocRAND**   AMD's counterpart to cuRAND, with identical high-level API:
 
 ```julia
 # Source-verified from AMDGPU.jl/src/rand/random.jl
@@ -227,7 +227,7 @@ function inplace_pow2(A, f)
 end
 ```
 
-This means `randn!(A)` on an AMDGPU array of non-power-of-2 length silently allocates a larger temporary buffer. For n=10^6 (not a power of 2), padlen=2^20=1,048,576 — only 4.8% overhead.
+This means `randn!(A)` on an AMDGPU array of non-power-of-2 length silently allocates a larger temporary buffer. For n=10^6 (not a power of 2), padlen=2^20=1,048,576   only 4.8% overhead.
 
 ---
 
@@ -236,13 +236,13 @@ This means `randn!(A)` on an AMDGPU array of non-power-of-2 length silently allo
 The audit flag `[CAOM G] rand!` and `[CAOM G] randn!` means:
 - `C` = CUDA has its own method (overrides GPUArrays for CuArray)
 - `A` = AMDGPU has its own method (rocRAND)
-- `O` = oneAPI uses GPUArrays' method (`gpuarrays_rng()` — confirmed by source)
+- `O` = oneAPI uses GPUArrays' method (`gpuarrays_rng()`   confirmed by source)
 - `M` = Metal has its own method (custom kernel, confirmed by source)
 - `G` = GPUArrays provides the fallback kernel
 
 The `G` flag means **GPUArrays already has working `rand!` and `randn!` kernels** using Xorshift128+. These serve JLArray (test backend), oneAPI, and any future backend.
 
-**The gap is the out-of-place functions:** `[CA-M -] rand` and `[CA-M -] randn` — the `-` for oneAPI and the `-` for future backends means `rand(T, dims...)` (allocate + fill) is missing.
+**The gap is the out-of-place functions:** `[CA-M -] rand` and `[CA-M -] randn`   the `-` for oneAPI and the `-` for future backends means `rand(T, dims...)` (allocate + fill) is missing.
 
 But looking at oneAPI's source: it **does** define `rand` and `randn` as local functions (not `Base.rand` overrides). For JLArray and future backends, there's no `rand(jl_arr_type, T, dims...)` dispatch at all.
 
@@ -252,9 +252,9 @@ But looking at oneAPI's source: it **does** define `rand` and `randn` as local f
 
 All other operations transform existing data. rand/randn **create data from nothing**. The architectural difference:
 
-1. **No input bandwidth** — no data to read from GPU memory, only writes
-2. **Arithmetic-bound, not memory-bound** — each thread must compute `log`, `sqrt`, `cos`, `sin` (randn) — these dominate, not memory
-3. **Task-local state** — the RNG state is per-task (not global), stored in `task_local_storage()`
-4. **Reproducibility requirement** — same seed + same array size must always produce the same values, regardless of kernel launch configuration (noted with `XXX` comment in both CUDA.jl and Metal.jl sources)
+1. **No input bandwidth**   no data to read from GPU memory, only writes
+2. **Arithmetic-bound, not memory-bound**   each thread must compute `log`, `sqrt`, `cos`, `sin` (randn)   these dominate, not memory
+3. **Task-local state**   the RNG state is per-task (not global), stored in `task_local_storage()`
+4. **Reproducibility requirement**   same seed + same array size must always produce the same values, regardless of kernel launch configuration (noted with `XXX` comment in both CUDA.jl and Metal.jl sources)
 
-This reproducibility concern — explicitly noted in source comments — drives the fixed `threads=32` choice in CUDA.jl and Metal.jl. Using a variable thread count would make results depend on GPU hardware capacity.
+This reproducibility concern   explicitly noted in source comments   drives the fixed `threads=32` choice in CUDA.jl and Metal.jl. Using a variable thread count would make results depend on GPU hardware capacity.

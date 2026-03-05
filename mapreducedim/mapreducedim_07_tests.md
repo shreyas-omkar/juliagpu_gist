@@ -1,4 +1,4 @@
-# mapreducedim! — Test Suite
+# mapreducedim!   Test Suite
 
 Extended from `test/testsuite/mapreduce.jl`.
 
@@ -56,14 +56,14 @@ end
 | Test | What it verifies |
 |------|-----------------|
 | `sum`, `prod`, etc. | Orchestration layer correctly routes all high-level reductions |
-| `sum(abs2, A)` | Map fusion — `f` applied in-register, no temporary array |
+| `sum(abs2, A)` | Map fusion   `f` applied in-register, no temporary array |
 | `dims=1`, `dims=2` | Dimensional reduction index arithmetic |
-| `dims=(1,3)` | Multi-dimension reduction — multiple dims collapsed simultaneously |
+| `dims=(1,3)` | Multi-dimension reduction   multiple dims collapsed simultaneously |
 | `rand(ET, 1)` | Single-element: trivial reduction, output = input |
 | `dims=1` on `(1,16)` | Size-1 reduced dimension: output = input (neutral element + one value) |
-| `rand(ET, 10^6)` | **Multi-block reduction** — exercises inter-block combine pass |
+| `rand(ET, 10^6)` | **Multi-block reduction**   exercises inter-block combine pass |
 | `rand(ET, 1025)` | Non-power-of-2: threadgroup padding with neutral element |
-| `init=one(ET)` | Custom init overrides `neutral_element` — verify pass-through |
+| `init=one(ET)` | Custom init overrides `neutral_element`   verify pass-through |
 | Boolean `any`/`all` | Neutral elements `false`/`true` initialised correctly |
 | `fill(false, 128)` → `any` | All-false: verify `false` neutral element doesn't corrupt |
 | `any(A; dims=1)` | Boolean dimensional reduction |
@@ -83,4 +83,4 @@ This tests the multi-block path that is not exercised by any of the smaller test
 
 ## Critical Test: Non-Power-of-2 (`n = 1025`)
 
-Group size 256. `1025 / 256 = 4.003...` — the last group only has 1 element, but must initialise `shared[2:256]` with the neutral element to avoid garbage in the tree reduction. This tests the padding logic in the kernel.
+Group size 256. `1025 / 256 = 4.003...`   the last group only has 1 element, but must initialise `shared[2:256]` with the neutral element to avoid garbage in the tree reduction. This tests the padding logic in the kernel.

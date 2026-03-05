@@ -1,4 +1,4 @@
-# findall — Test Suite
+# findall   Test Suite
 
 Added to `test/testsuite/indexing.jl` using the `compare` helper.
 
@@ -47,8 +47,8 @@ end
 
 | Test | What it verifies |
 |------|-----------------|
-| `fill(true, 128)` | All elements written — output size = input size |
-| `fill(false, 128)` | Zero-output edge case — `n=0` guard |
+| `fill(true, 128)` | All elements written   output size = input size |
+| `fill(false, 128)` | Zero-output edge case   `n=0` guard |
 | `rand(Bool, 128)` | General correctness of cumsum + scatter |
 | sparse (3 trues) | Correct scatter with large gaps between true positions |
 | 2-D / 3-D | `CartesianIndices` recovery for ND arrays |
@@ -60,6 +60,6 @@ end
 | `A[mask]` | `Base.to_index` override routes to GPU `findall`, not CPU |
 | 2-D `B[mask2]` | ND logical indexing via overridden `to_indices` |
 
-The **logical indexing tests** are the most important beyond `findall` itself — they verify that `A[mask]` is GPU-accelerated end-to-end, not just `findall` in isolation.
+The **logical indexing tests** are the most important beyond `findall` itself   they verify that `A[mask]` is GPU-accelerated end-to-end, not just `findall` in isolation.
 
 The **non-power-of-2 test** (`n=1025`) is critical for cumsum correctness: Blelloch scan pads to the next power of 2 internally, and this test verifies the padding produces correct results at the boundary.

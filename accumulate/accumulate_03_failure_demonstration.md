@@ -1,4 +1,4 @@
-# accumulate! / cumsum / cumprod — Failure Demonstration
+# accumulate! / cumsum / cumprod   Failure Demonstration
 
 ## Reproducing the Failure
 
@@ -41,9 +41,9 @@ User calls:   accumulate!(+, B::JLArray, A::JLArray)
 Julia dispatch:
   JLArray  <:  AbstractGPUArray  <:  AbstractArray
 
-  Step 1: JLArrays.jl   — no accumulate! method  ✗
-  Step 2: GPUArrays.jl  — no accumulate! method  ✗
-  Step 3: Base          — Base.accumulate!(op, B, A) FOUND
+  Step 1: JLArrays.jl     no accumulate! method  ✗
+  Step 2: GPUArrays.jl    no accumulate! method  ✗
+  Step 3: Base            Base.accumulate!(op, B, A) FOUND
 
 → Base.accumulate! executes:
       B[1] = A[1]
@@ -58,10 +58,10 @@ Julia dispatch:
 
 ## Two Failure Modes
 
-### Mode 1: `allowscalar(false)` — Hard Error (recommended)
+### Mode 1: `allowscalar(false)`   Hard Error (recommended)
 Throws immediately at the first `getindex`. Completely unusable.
 
-### Mode 2: `allowscalar(true)` — Silent Algorithmic Degradation (default)
+### Mode 2: `allowscalar(true)`   Silent Algorithmic Degradation (default)
 Executes the sequential loop on CPU.  
 - Each `B[i]` and `A[i]` access = separate device-to-host transfer  
 - Result is numerically correct  
@@ -82,7 +82,7 @@ Unlike `reverse` where the fallback is merely bandwidth-limited, `accumulate!` w
 With `reverse`, the scalar fallback gives you the right answer at ~30× slower.  
 With `accumulate!`, the scalar fallback gives you:
 1. ~22× slower due to PCIe bandwidth
-2. O(n) sequential depth instead of O(log n) parallel depth — **another ~20× loss at n=1M**
+2. O(n) sequential depth instead of O(log n) parallel depth   **another ~20× loss at n=1M**
 3. Total effective slowdown at n=1M: potentially **400× or more** vs the GPU algorithm
 
 All silent. No warning at the call site.

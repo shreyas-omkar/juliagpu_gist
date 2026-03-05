@@ -1,4 +1,4 @@
-# accumulate! / cumsum / cumprod — Algorithm Deep Dive
+# accumulate! / cumsum / cumprod   Algorithm Deep Dive
 
 ## What Is a Prefix Scan?
 
@@ -19,7 +19,7 @@ B[1] = A[1]
 for i in 2:n
     B[i] = B[i-1] ⊕ A[i]
 ```
-is **inherently sequential** — each step depends on the previous result. On GPU with thousands of threads, this bottleneck is catastrophic. Direct parallelisation is non-trivial.
+is **inherently sequential**   each step depends on the previous result. On GPU with thousands of threads, this bottleneck is catastrophic. Direct parallelisation is non-trivial.
 
 ---
 
@@ -58,8 +58,8 @@ Inclusive result: add `A_original[i]` to each output.
 
 | | Sequential | Blelloch |
 |---|---|---|
-| Work | O(n) | O(n) — optimal |
-| Depth | O(n) | O(log n) — parallel |
+| Work | O(n) | O(n)   optimal |
+| Depth | O(n) | O(log n)   parallel |
 
 ---
 
@@ -93,4 +93,4 @@ Inclusive output:  [  3,  4, 11, 11, 15, 16, 22, 25 ]
 | Standard | Blelloch two-phase scan | Any backend |
 | `DecoupledLookback` | Single-pass with inter-block communication | Requires `memory_order_acq_rel` atomics |
 
-Metal cannot use `DecoupledLookback` — its shader model does not expose `memory_order_acq_rel` to compute kernels. Metal.jl implements Blelloch from scratch instead.
+Metal cannot use `DecoupledLookback`   its shader model does not expose `memory_order_acq_rel` to compute kernels. Metal.jl implements Blelloch from scratch instead.

@@ -1,8 +1,8 @@
-# sort! / sortperm / sortperm! — Performance Analysis
+# sort! / sortperm / sortperm!   Performance Analysis
 
 ## Bandwidth Model for GPU Merge Sort
 
-Merge sort makes `⌈log₂(n)⌉` passes. Each pass reads the full array and writes the full array — 2 global memory transactions per element per pass.
+Merge sort makes `⌈log₂(n)⌉` passes. Each pass reads the full array and writes the full array   2 global memory transactions per element per pass.
 
 For `sort!` (values only):
 ```
@@ -48,7 +48,7 @@ sort! scalar path:  ~O(n log n) comparisons
 | 1M | ~80,000 | ~2.1 | ~38,000× |
 | 10M | ~900,000 | ~18 | ~50,000× |
 
-Note: these are not the typical ~30× speedups from previous PRs. Sort's O(n log n) scalar cost vs O(n log n) GPU cost still gives a large ratio because each scalar operation has ~4 μs overhead vs ~5 ns for a GPU memory access — 800× per operation, compounded by O(n log n) total operations.
+Note: these are not the typical ~30× speedups from previous PRs. Sort's O(n log n) scalar cost vs O(n log n) GPU cost still gives a large ratio because each scalar operation has ~4 μs overhead vs ~5 ns for a GPU memory access   800× per operation, compounded by O(n log n) total operations.
 
 ### sortperm! timing (higher memory traffic)
 
@@ -57,7 +57,7 @@ Note: these are not the typical ~30× speedups from previous PRs. Sort's O(n log
 | 10K | ~1,000 | ~0.15 | ~6,700× |
 | 100K | ~14,000 | ~0.9 | ~15,600× |
 | 1M | ~160,000 | ~6.5 | ~24,600× |
-| 10M | — (timeout) | ~55 | — |
+| 10M |   (timeout) | ~55 |   |
 
 ## Pass Count by Array Size
 
@@ -70,7 +70,7 @@ n = 10,000,000 → 24 passes
 n = 100,000,000 → 27 passes
 ```
 
-The logarithmic growth means performance scales almost linearly with n — doubling n adds roughly 1 pass (constant extra time beyond the linear memory traffic).
+The logarithmic growth means performance scales almost linearly with n   doubling n adds roughly 1 pass (constant extra time beyond the linear memory traffic).
 
 ## Comparison: AK Merge Sort vs CUDA Quicksort (for sort!)
 

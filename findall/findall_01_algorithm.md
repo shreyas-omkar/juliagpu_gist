@@ -1,13 +1,13 @@
-# findall — Algorithm: Stream Compaction via Prefix Scan
+# findall   Algorithm: Stream Compaction via Prefix Scan
 
 ## Why GPU findall Is Non-Trivial
 
-On CPU, `findall` is a trivial sequential scan — walk the array, `push!` true indices into a growing list. On GPU, two fundamental problems block this:
+On CPU, `findall` is a trivial sequential scan   walk the array, `push!` true indices into a growing list. On GPU, two fundamental problems block this:
 
 1. **Unknown output size.** GPU memory must be allocated exactly before the scatter. A growable list does not exist on GPU.
 2. **Race conditions.** If every thread tries to append to the output, two threads may write to the same position simultaneously.
 
-The standard GPU solution is **stream compaction via prefix scan** — a two-step algorithm that solves both problems.
+The standard GPU solution is **stream compaction via prefix scan**   a two-step algorithm that solves both problems.
 
 ---
 
@@ -41,7 +41,7 @@ Thread i:
       do nothing
 ```
 
-Threads for `false` elements are idle. No synchronisation needed — scatter positions are provably unique.
+Threads for `false` elements are idle. No synchronisation needed   scatter positions are provably unique.
 
 ---
 

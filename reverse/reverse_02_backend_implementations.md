@@ -1,10 +1,10 @@
-# reverse / reverse! — Backend Implementations
+# reverse / reverse!   Backend Implementations
 
 The algorithm is identical across every backend that has one. What differs is **only the kernel launch syntax and thread index intrinsic**.
 
 ---
 
-## CUDA.jl — [`src/reverse.jl`](https://github.com/JuliaGPU/CUDA.jl/blob/master/src/reverse.jl)
+## CUDA.jl   [`src/reverse.jl`](https://github.com/JuliaGPU/CUDA.jl/blob/master/src/reverse.jl)
 
 Defines `_reverse` (out-of-place) and `_reverse!` (in-place) as internal functions, each containing a `@cuda`-launched closure.
 
@@ -31,9 +31,9 @@ end
 
 ---
 
-## AMDGPU.jl — [`src/kernels/reverse.jl`](https://github.com/JuliaGPU/AMDGPU.jl/blob/master/src/kernels/reverse.jl)
+## AMDGPU.jl   [`src/kernels/reverse.jl`](https://github.com/JuliaGPU/AMDGPU.jl/blob/master/src/kernels/reverse.jl)
 
-Source file explicitly comments *"Adapted from CUDA.jl"* — algorithm is identical. Only the intrinsics change:
+Source file explicitly comments *"Adapted from CUDA.jl"*   algorithm is identical. Only the intrinsics change:
 
 - Thread index: `workitemIdx().x + (workgroupIdx().x - 0x1) * workgroupDim().x`
 - Launch: `@roc groupsize=256 gridsize=cld(length(x), 256)`
@@ -53,16 +53,16 @@ end
 
 ---
 
-## oneAPI.jl — No Implementation
+## oneAPI.jl   No Implementation
 
 Confirmed by exhaustive audit of [`JuliaGPU/oneAPI.jl`](https://github.com/JuliaGPU/oneAPI.jl). No `reverse` or `reverse!` method exists. Dispatch falls through to `Base.reverse(::AbstractArray)`.
 
 **Result with `allowscalar(false)`:** hard error at first `getindex`.  
-**Result with `allowscalar(true)`:** silent scalar CPU loop — one PCIe transfer per element, no warning.
+**Result with `allowscalar(true)`:** silent scalar CPU loop   one PCIe transfer per element, no warning.
 
 ---
 
-## Metal.jl — No Implementation
+## Metal.jl   No Implementation
 
 Confirmed by exhaustive audit of [`JuliaGPU/Metal.jl`](https://github.com/JuliaGPU/Metal.jl). Same failure mode as oneAPI.jl.
 
@@ -76,4 +76,4 @@ Confirmed by exhaustive audit of [`JuliaGPU/Metal.jl`](https://github.com/JuliaG
 | AMDGPU.jl | ✅ | Own `@roc` kernel (adapted from CUDA.jl) |
 | oneAPI.jl | ❌ | Falls to `Base` → ERROR / silent CPU |
 | Metal.jl | ❌ | Falls to `Base` → ERROR / silent CPU |
-| **GPUArrays.jl (PR #1)** | ✅ | **KA kernel at `AnyGPUArray` — fixes all** |
+| **GPUArrays.jl (PR #1)** | ✅ | **KA kernel at `AnyGPUArray`   fixes all** |

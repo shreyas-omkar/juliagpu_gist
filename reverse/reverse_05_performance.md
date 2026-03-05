@@ -1,9 +1,9 @@
-# reverse / reverse! — Performance Analysis
+# reverse / reverse!   Performance Analysis
 
 ## JLArrays Benchmark (Measured)
 
 Benchmarked on `JLArrays.jl` reference backend using `BenchmarkTools.jl` (median ≥20 samples).  
-JLArrays is CPU-backed — both paths run on CPU, so timings are comparable.  
+JLArrays is CPU-backed   both paths run on CPU, so timings are comparable.  
 **This proves correctness and dispatch, not GPU performance.**
 
 | Array size | Before (ms) | After (ms) | Ratio |
@@ -14,7 +14,7 @@ JLArrays is CPU-backed — both paths run on CPU, so timings are comparable.
 | 1M | 43.2 | 68.2 | ~1× |
 | 5M | 461.3 | 437.0 | ~1× |
 
-The ~1× ratio is **expected and correct** — both the scalar fallback and the KA kernel run on CPU through JLArrays. The benchmark confirms the kernel dispatches, compiles, and produces correct output.
+The ~1× ratio is **expected and correct**   both the scalar fallback and the KA kernel run on CPU through JLArrays. The benchmark confirms the kernel dispatches, compiles, and produces correct output.
 
 ---
 

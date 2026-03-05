@@ -1,11 +1,11 @@
-# accumulate! / cumsum / cumprod — Backend Implementations
+# accumulate! / cumsum / cumprod   Backend Implementations
 
 Unlike `reverse`, **all four vendor backends already have `accumulate!`**.  
-The gap is at the `GPUArrays.jl` level — no fallback exists for non-vendor backends.
+The gap is at the `GPUArrays.jl` level   no fallback exists for non-vendor backends.
 
 ---
 
-## CUDA.jl — [`src/accumulate.jl`](https://github.com/JuliaGPU/CUDA.jl/blob/master/src/accumulate.jl)
+## CUDA.jl   [`src/accumulate.jl`](https://github.com/JuliaGPU/CUDA.jl/blob/master/src/accumulate.jl)
 
 Implements from scratch using `@cuda`. Two-pass strategy:
 1. Local scan within each thread block (shared memory)
@@ -15,7 +15,7 @@ Exploits warp-level primitives not available through KernelAbstractions.jl for o
 
 ---
 
-## AMDGPU.jl — [`src/kernels/accumulate.jl`](https://github.com/JuliaGPU/AMDGPU.jl/blob/master/src/kernels/accumulate.jl)
+## AMDGPU.jl   [`src/kernels/accumulate.jl`](https://github.com/JuliaGPU/AMDGPU.jl/blob/master/src/kernels/accumulate.jl)
 
 Seven lines. Delegates entirely to AcceleratedKernels.jl, passing `ROCBackend()`:
 
@@ -30,11 +30,11 @@ Base.cumprod(src::AnyROCArray; kwargs...) = AK.cumprod(src, ROCBackend(); kwargs
 
 ---
 
-## oneAPI.jl — [`src/accumulate.jl`](https://github.com/JuliaGPU/oneAPI.jl/blob/master/src/accumulate.jl)
+## oneAPI.jl   [`src/accumulate.jl`](https://github.com/JuliaGPU/oneAPI.jl/blob/master/src/accumulate.jl)
 
 Also delegates to AcceleratedKernels.jl, but with a **critical workaround**: `block_size` capped at 64.
 
-Intel GPU hardware has a **verified bug** in the Blelloch scan at `block_size ≥ 128` — produces incorrect results. Fix is a hardcoded constant:
+Intel GPU hardware has a **verified bug** in the Blelloch scan at `block_size ≥ 128`   produces incorrect results. Fix is a hardcoded constant:
 
 ```julia
 const _ACCUMULATE_BLOCK_SIZE = 64  # Intel Blelloch bug at >= 128
@@ -45,13 +45,13 @@ Base.accumulate!(op, B::oneArray, A::oneArray;
     AK.accumulate!(op, B, A, oneAPIBackend(); init, block_size, kwargs...)
 ```
 
-> **Note:** This workaround is NOT needed in the GPUArrays.jl fallback — `oneAPI.jl`'s more specific method always wins dispatch for `oneArray`. The fallback never executes on Intel hardware.
+> **Note:** This workaround is NOT needed in the GPUArrays.jl fallback   `oneAPI.jl`'s more specific method always wins dispatch for `oneArray`. The fallback never executes on Intel hardware.
 
 ---
 
-## Metal.jl — [`src/accumulate.jl`](https://github.com/JuliaGPU/Metal.jl/blob/master/src/accumulate.jl)
+## Metal.jl   [`src/accumulate.jl`](https://github.com/JuliaGPU/Metal.jl/blob/master/src/accumulate.jl)
 
-**Cannot use AcceleratedKernels.jl.** AK's `DecoupledLookback` algorithm requires `memory_order_acq_rel` atomics — Metal's shader model does not expose these to compute kernels.
+**Cannot use AcceleratedKernels.jl.** AK's `DecoupledLookback` algorithm requires `memory_order_acq_rel` atomics   Metal's shader model does not expose these to compute kernels.
 
 Instead, Metal.jl implements a full Blelloch scan from scratch using Metal-specific intrinsics:
 

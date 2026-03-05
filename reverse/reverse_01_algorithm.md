@@ -1,8 +1,8 @@
-# reverse / reverse! — Algorithm Deep Dive
+# reverse / reverse!   Algorithm Deep Dive
 
 ## Core Idea: Index Reordering
 
-Reversing an array is a pure index reordering problem — no arithmetic is performed on values, only on *where they are placed*.
+Reversing an array is a pure index reordering problem   no arithmetic is performed on values, only on *where they are placed*.
 
 For a 1D array of length `n`, element at position `i` maps to `n + 1 - i`.  
 For N-dimensional arrays, the formula applies independently per dimension:
@@ -16,7 +16,7 @@ nd_out[d] = nd[d]                    otherwise
 
 ## Out-of-Place: `reverse`
 
-Each thread reads one source element and writes to one destination — **embarrassingly parallel**, zero data dependencies, no barriers needed.
+Each thread reads one source element and writes to one destination   **embarrassingly parallel**, zero data dependencies, no barriers needed.
 
 ```
 Thread i:
@@ -31,7 +31,7 @@ Launch: `ndrange = length(A)`, one thread per element.
 
 ## In-Place: `reverse!`
 
-Cannot assign one thread per element naively — thread at position 1 swaps with `n`, thread at position `n` also swaps with 1, **undoing the first swap**.
+Cannot assign one thread per element naively   thread at position 1 swaps with `n`, thread at position `n` also swaps with 1, **undoing the first swap**.
 
 **Fix:** Launch only ⌈n/2⌉ threads. Each thread owns one swap pair.  
 Guard `lin_in < lin_out` skips the middle element of odd-length dims (its mirror is itself).
@@ -42,7 +42,7 @@ Thread i  (i ≤ ⌈n/2⌉):
   2. idx_out = apply mirror formula
   3. if LinearIndex(idx_in) < LinearIndex(idx_out):
          swap(A[idx_in], A[idx_out])
-     # else: middle element of odd-length dim — skip
+     # else: middle element of odd-length dim   skip
 ```
 
 `reduced_size` halves the last reversible dimension:

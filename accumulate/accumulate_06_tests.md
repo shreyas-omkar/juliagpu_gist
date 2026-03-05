@@ -1,4 +1,4 @@
-# accumulate! / cumsum / cumprod — Test Suite
+# accumulate! / cumsum / cumprod   Test Suite
 
 New file: `test/testsuite/accumulate.jl`
 
@@ -51,7 +51,7 @@ end
 | `n=10^6` | Multi-block reduction (exercises full Blelloch tree) |
 | `n=1` | Single-element edge: output = input, no reduction needed |
 | `ET[]` | Empty array guard in AK.jl delegation path |
-| `n=1024` | Exact power of 2 — Blelloch's natural input size |
-| `n=1025` | **Non-power-of-2** — AK.jl must pad internally; verifies padding correctness |
+| `n=1024` | Exact power of 2   Blelloch's natural input size |
+| `n=1025` | **Non-power-of-2**   AK.jl must pad internally; verifies padding correctness |
 
 The `n=1025` test is the most important: Blelloch assumes power-of-2 input. AK.jl handles this by padding to the next power of 2 internally. If padding is broken, this test catches it.

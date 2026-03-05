@@ -1,4 +1,4 @@
-# mapreducedim! — Algorithm: Tiled Shared-Memory Tree Reduction
+# mapreducedim!   Algorithm: Tiled Shared-Memory Tree Reduction
 
 ## What mapreducedim! Does
 
@@ -18,7 +18,7 @@ It is the kernel beneath **every high-level reduction in Julia**:
 
 ## Why Sequential Reduction Fails on GPU
 
-The naive sequential algorithm is strictly serial — each step depends on the previous:
+The naive sequential algorithm is strictly serial   each step depends on the previous:
 
 ```
 acc = init
@@ -74,8 +74,8 @@ if tid == 1:
 
 | Metric | Value |
 |--------|-------|
-| Work | O(n) — optimal, matches sequential |
-| Depth | O(log T) — T = threadgroup size, typically 256 |
+| Work | O(n)   optimal, matches sequential |
+| Depth | O(log T)   T = threadgroup size, typically 256 |
 | Synchronisations | log₂(T) barriers (intra-group only) |
 | Global memory passes | ~2 (read input, write output) |
 
@@ -118,7 +118,7 @@ Output:  R[out_idx] = 36   ← correct: 3+7+2+5+1+8+4+6 = 36
 
 When the reduction slice is larger than one threadgroup (n > T), multiple blocks are launched per output element. Each block reduces T elements into one partial result. A second pass (or atomic operation) combines partial results.
 
-This is why the `n=10^6` test case matters — it exercises the multi-block path.
+This is why the `n=10^6` test case matters   it exercises the multi-block path.
 
 ---
 
@@ -147,4 +147,4 @@ The shared memory must be initialised for out-of-bounds threads (when n is not a
 | `\|` (any) | `false` |
 | `&` (all) | `true` |
 
-GPUArrays already provides `neutral_element(op, T)` for all standard operators — the kernel uses this directly.
+GPUArrays already provides `neutral_element(op, T)` for all standard operators   the kernel uses this directly.

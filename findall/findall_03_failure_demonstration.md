@@ -1,4 +1,4 @@
-# findall — Failure Demonstration
+# findall   Failure Demonstration
 
 ## Reproducing the Failure
 
@@ -42,9 +42,9 @@ User calls:   findall(bools::JLArray{Bool,1})
 Julia dispatch:
   JLArray  <:  AbstractGPUArray  <:  AbstractArray
 
-  Step 1: JLArrays.jl   — no findall method  ✗
-  Step 2: GPUArrays.jl  — no findall method  ✗
-  Step 3: Base          — findall(::AbstractArray) FOUND
+  Step 1: JLArrays.jl     no findall method  ✗
+  Step 2: GPUArrays.jl    no findall method  ✗
+  Step 3: Base            findall(::AbstractArray) FOUND
 
 → Base.findall executes:
       ys = eltype(keys(bools))[]        ← empty CPU Vector
@@ -59,12 +59,12 @@ Julia dispatch:
 
 ## Two Failure Modes
 
-### Mode 1: `allowscalar(false)` — Hard Error
+### Mode 1: `allowscalar(false)`   Hard Error
 Throws at the first `getindex`. Operation completely unusable.  
-Identical behaviour on oneAPI.jl and Metal.jl (neither has `findall`... wait, they do — see backend doc).  
+Identical behaviour on oneAPI.jl and Metal.jl (neither has `findall`... wait, they do   see backend doc).  
 Applies to JLArray and any future custom backend.
 
-### Mode 2: `allowscalar(true)` — Silent Catastrophe (default)
+### Mode 2: `allowscalar(true)`   Silent Catastrophe (default)
 The `push!` loop runs on CPU. Each `bools[i]` is a separate device-to-host scalar read.
 
 For `n = 10^7` elements:
@@ -78,7 +78,7 @@ This is a silent performance bug that only shows up in profiling.
 
 ## The Logical Indexing Consequence
 
-`findall` is not just called directly — it underlies `A[mask]`. Every vendor backend defines:
+`findall` is not just called directly   it underlies `A[mask]`. Every vendor backend defines:
 
 ```julia
 Base.to_index(::CuArray,  I::AbstractArray{Bool}) = findall(I)

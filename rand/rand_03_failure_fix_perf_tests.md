@@ -1,10 +1,10 @@
-# rand / randn — Failure Demonstration, Fix, Performance, and Tests
+# rand / randn   Failure Demonstration, Fix, Performance, and Tests
 
 ## SECTION 3: Failure Demonstration
 
 ### The Failure is Different from Other PRs
 
-For `reverse`, `sort!`, `mapreducedim!` — the failure is a scalar indexing error or a hard error. For rand/randn the situation is more nuanced:
+For `reverse`, `sort!`, `mapreducedim!`   the failure is a scalar indexing error or a hard error. For rand/randn the situation is more nuanced:
 
 **`rand!(A)` and `randn!(A)` already work on all backends** (the `G` flag in the audit). The gap is the **out-of-place allocation forms**.
 
@@ -13,10 +13,10 @@ For `reverse`, `sort!`, `mapreducedim!` — the failure is a scalar indexing err
 ```julia
 using GPUArrays, JLArrays
 
-# rand! works — GPUArrays kernel exists
+# rand! works   GPUArrays kernel exists
 A = jl(zeros(Float32, 1000))
-rand!(A)          # ✓ works — uses GPUArrays.RNG Xorshift128+
-randn!(A)         # ✓ works — uses GPUArrays.RNG Box–Muller
+rand!(A)          # ✓ works   uses GPUArrays.RNG Xorshift128+
+randn!(A)         # ✓ works   uses GPUArrays.RNG Box Muller
 
 # Out-of-place rand FAILS
 B = rand(JLArray{Float32}, 1000)
@@ -24,12 +24,12 @@ B = rand(JLArray{Float32}, 1000)
 # Closest candidates: rand(::AbstractRNG, ...), rand(::Type{Float32}, ...)
 # → Falls to Base.rand(Float32, 1000) → returns CPU Array, not JLArray!
 
-# Silent wrong type — no error, wrong result:
-C = rand(Float32, 1000)     # This is what actually runs — CPU Array!
-typeof(C)                   # Array{Float32,1} — not on GPU at all
+# Silent wrong type   no error, wrong result:
+C = rand(Float32, 1000)     # This is what actually runs   CPU Array!
+typeof(C)                   # Array{Float32,1}   not on GPU at all
 ```
 
-### Failure Mode 2: Wrong dispatch — silently returns CPU array
+### Failure Mode 2: Wrong dispatch   silently returns CPU array
 
 The most dangerous failure: when a user writes `A = rand(Float32, n)` intending GPU allocation but gets a CPU array, with no error message:
 
@@ -43,7 +43,7 @@ function init_weights(n::Int)
 end
 
 W = init_weights(1000)
-typeof(W)  # Array{Float32,2} — CPU! No error.
+typeof(W)  # Array{Float32,2}   CPU! No error.
 
 # Later:
 loss = sum(model(W))          # W is on CPU → silent performance disaster
@@ -58,7 +58,7 @@ using oneAPI
 # oneAPI.jl defines local rand, not Base.rand override
 # So Base.rand dispatch misses it:
 A = Base.rand(oneArray, Float32, 100)
-# MethodError — the oneAPI.jl rand() is a module-local function, 
+# MethodError   the oneAPI.jl rand() is a module-local function, 
 # not a Base method override.
 
 # Only this works:
@@ -79,7 +79,7 @@ Julia dispatch search:
 Result: CPU Float32 array, no warning, no error.
 ```
 
-The type parameter is completely ignored — `JLArray{Float32}` as a type argument to `rand` doesn't trigger any GPU-specific dispatch.
+The type parameter is completely ignored   `JLArray{Float32}` as a type argument to `rand` doesn't trigger any GPU-specific dispatch.
 
 ---
 
@@ -91,11 +91,11 @@ The type parameter is completely ignored — `JLArray{Float32}` as a type argume
 
 **2. How to express "array type":** The dispatch needs to accept an array type as a value, not an instance. This is the pattern `rand(::Type{<:AnyGPUArray}, T, dims)`.
 
-**3. Default element type:** `Float32` — matches all vendor defaults and ML conventions.
+**3. Default element type:** `Float32`   matches all vendor defaults and ML conventions.
 
 **4. File location:** Alongside existing rand! kernel in `GPUArrays.jl/src/host/random.jl`.
 
-**5. No new dependency:** Unlike sort (AK.jl), this PR needs nothing — the kernel already exists.
+**5. No new dependency:** Unlike sort (AK.jl), this PR needs nothing   the kernel already exists.
 
 ### Complete Implementation
 
@@ -148,12 +148,12 @@ rand(JLArray{Float32}, 100)    → Base.rand(Float32, 100) ← CPU! Wrong type
 randn(JLArray{Float32}, 100)   → Base.randn(Float32,100) ← CPU! Wrong type
 rand(CuArray{Float32}, 100)    → ✓ (CUDA.jl has own method)
 rand(ROCArray{Float32}, 100)   → ✓ (AMDGPU.jl has own method)
-rand(oneArray{Float32}, 100)   → only via oneAPI.rand() — not Base.rand
+rand(oneArray{Float32}, 100)   → only via oneAPI.rand()   not Base.rand
 rand(MtlArray{Float32}, 100)   → ✓ (Metal.jl has MPS method)
 
 AFTER:
 rand(JLArray{Float32}, 100)    → GPUArrays.rand → default_rng → Xorshift128+ ✓
-randn(JLArray{Float32}, 100)   → GPUArrays.randn → default_rng → Box–Muller ✓
+randn(JLArray{Float32}, 100)   → GPUArrays.randn → default_rng → Box Muller ✓
 rand(CuArray{Float32}, 100)    → CUDA.jl (unchanged, more specific) ✓
 rand(ROCArray{Float32}, 100)   → AMDGPU.jl (unchanged) ✓
 rand(oneArray{Float32}, 100)   → GPUArrays fallback (now via Base.rand) ✓
@@ -166,17 +166,17 @@ rand(<future>{Float32}, 100)   → GPUArrays fallback ✓
 
 ### rand! Performance (Write-Only, Arithmetic-Bound for randn)
 
-**rand!** — Xorshift128+ is extremely cheap (4 XOR ops + 1 add per sample). For Float32:
+**rand!**   Xorshift128+ is extremely cheap (4 XOR ops + 1 add per sample). For Float32:
 - Each thread produces one 32-bit sample per iteration
 - Memory bound: pure write, 4 bytes per element
 - At 360 GB/s write bandwidth: `n × 4 / 360e9` seconds
 - n=10^7: 4×10^7 / 360e9 = **0.11 ms**
 
-**randn!** — Box–Muller requires `log`, `sqrt`, `cos`, `sin` — GPU transcendentals run at ~4 ns each:
+**randn!**   Box Muller requires `log`, `sqrt`, `cos`, `sin`   GPU transcendentals run at ~4 ns each:
 - 4 transcendentals per pair of outputs → 2 transcendentals per element
 - At 4000 GFLOP/s transcendental throughput (RTX 3060): 2 × n / 4e12 seconds
 - n=10^7: 2×10^7 / 4e12 = **0.005 ms** ← dominated by memory, not arithmetic!
-- Memory bound: `n × 4 / 360e9 = 0.11 ms` — same as rand!
+- Memory bound: `n × 4 / 360e9 = 0.11 ms`   same as rand!
 
 **CPU baseline for out-of-place rand(Float32, n):**
 - CPU rand (xoshiro256++): ~2 ns/sample
@@ -195,14 +195,14 @@ rand(<future>{Float32}, 100)   → GPUArrays fallback ✓
 
 The speedup plateaus at ~180× at large n because both CPU and GPU become memory bandwidth bound, with GPU having ~180× more bandwidth (360 vs 2 GB/s peak write).
 
-**Important:** The "speedup" for the out-of-place fix is not GPU vs CPU — it's "correct GPU result" vs "wrong CPU result." The before state doesn't just run slowly — it returns the wrong type entirely.
+**Important:** The "speedup" for the out-of-place fix is not GPU vs CPU   it's "correct GPU result" vs "wrong CPU result." The before state doesn't just run slowly   it returns the wrong type entirely.
 
-### AMDGPU-Specific: rocRAND vs Box–Muller
+### AMDGPU-Specific: rocRAND vs Box Muller
 
 rocRAND uses hardware-accelerated HRNG generators on AMD hardware. For `randn!`:
-- rocRAND `generate_normal`: hardware CDF inversion, ~2× faster than Box–Muller
+- rocRAND `generate_normal`: hardware CDF inversion, ~2× faster than Box Muller
 - Metal MPS: similarly hardware-accelerated on Apple Silicon
-- GPUArrays Box–Muller: software only, but still GPU-fast
+- GPUArrays Box Muller: software only, but still GPU-fast
 
 ---
 
@@ -211,7 +211,7 @@ rocRAND uses hardware-accelerated HRNG generators on AMD hardware. For `randn!`:
 ```julia
 @testsuite "random" (AT, eltypes) -> begin
 
-    # ── rand! in-place (already works — regression test) ──────────────────
+    # ── rand! in-place (already works   regression test) ──────────────────
     @testset "rand!" begin
         A = AT{Float32}(undef, 1024)
         rand!(A)
@@ -219,7 +219,7 @@ rocRAND uses hardware-accelerated HRNG generators on AMD hardware. For `randn!`:
         @test length(unique(Array(A))) > 900     # not constant
     end
 
-    # ── randn! in-place (already works — regression test) ─────────────────
+    # ── randn! in-place (already works   regression test) ─────────────────
     @testset "randn!" begin
         A = AT{Float32}(undef, 1024)
         randn!(A)
@@ -228,7 +228,7 @@ rocRAND uses hardware-accelerated HRNG generators on AMD hardware. For `randn!`:
         @test abs(std(v) - 1.0) < 0.1           # std ≈ 1
     end
 
-    # ── rand out-of-place (NEW — the fix) ─────────────────────────────────
+    # ── rand out-of-place (NEW   the fix) ─────────────────────────────────
     @testset "rand out-of-place" begin
         A = rand(AT{Float32}, 1024)
         @test A isa AT                           # correct type on GPU
@@ -244,7 +244,7 @@ rocRAND uses hardware-accelerated HRNG generators on AMD hardware. For `randn!`:
         @test eltype(A3) == Float32
     end
 
-    # ── randn out-of-place (NEW — the fix) ────────────────────────────────
+    # ── randn out-of-place (NEW   the fix) ────────────────────────────────
     @testset "randn out-of-place" begin
         A = randn(AT{Float32}, 1024)
         @test A isa AT                           # correct type on GPU
@@ -297,10 +297,10 @@ end
 
 | Test | What It Catches |
 |---|---|
-| `A isa AT` | The fundamental bug — without fix, returns CPU Array |
+| `A isa AT` | The fundamental bug   without fix, returns CPU Array |
 | `0 .<= A .< 1` | RNG output range correctness |
 | Reproducibility | Seed/counter threading works correctly |
-| Statistical mean/std | Box–Muller implementation correctness |
+| Statistical mean/std | Box Muller implementation correctness |
 | KS uniformity test | Xorshift128+ not degenerate (e.g., no bias to 0.0) |
 | Float16/Float64 | Type dispatch in fromint() conversion |
 | Empty array | `isempty` guard in rand!/randn! kernels |
