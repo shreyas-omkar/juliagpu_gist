@@ -1,4 +1,4 @@
-# sort! / sortperm / sortperm! — Algorithm Deep Dive
+# sort! / sortperm / sortperm! Algorithm Deep Dive
 
 ## What These Three Functions Do
 
@@ -16,18 +16,18 @@
 
 Sequential sorting (insertion sort, quicksort on CPU) exploits cache locality and branch prediction. GPUs have neither in the same sense. The challenge is:
 
-1. **SIMT execution** — all threads in a warp execute the same instruction. Divergent branches (e.g. `if A[i] < pivot`) reduce occupancy.
-2. **No random write locality** — scattered writes to global memory thrash L2 cache.
-3. **No recursion** (historically) — quicksort's recursive structure maps poorly to GPU. CUDA now supports *dynamic parallelism* (kernel launching kernels), which CUDA.jl exploits.
-4. **Stability requirements** — `sortperm` must be stable (equal keys preserve original order) because users rely on it for reproducible rank ordering.
+1. **SIMT execution** all threads in a warp execute the same instruction. Divergent branches (e.g. `if A[i] < pivot`) reduce occupancy.
+2. **No random write locality** scattered writes to global memory thrash L2 cache.
+3. **No recursion** (historically) quicksort's recursive structure maps poorly to GPU. CUDA now supports *dynamic parallelism* (kernel launching kernels), which CUDA.jl exploits.
+4. **Stability requirements** `sortperm` must be stable (equal keys preserve original order) because users rely on it for reproducible rank ordering.
 
 These constraints push GPU sort implementations toward **merge sort** (deterministic, stable, regular access patterns) or **radix sort** (no comparisons, integer keys only) rather than quicksort.
 
 ---
 
-## Algorithm 1: CUDA.jl — GPU Quicksort with Dynamic Parallelism
+## Algorithm 1: CUDA.jl GPU Quicksort with Dynamic Parallelism
 
-Source: `CUDA.jl/src/sorting.jl` — 1062 lines, developed by @xaellison (Alex Ellison).
+Source: `CUDA.jl/src/sorting.jl` 1062 lines, developed by @xaellison (Alex Ellison).
 
 ### High-Level Structure
 
@@ -47,7 +47,7 @@ quicksort!(vals, lo, hi)
 
 Rather than picking a random or fixed pivot, CUDA.jl performs a **bitonic sort** on `blockDim.x` elements sampled with stride `(hi - lo) / blockDim.x` from the array. The median of these sorted samples is the pivot. This gives a statistically good pivot (close to the true median) even for adversarial inputs.
 
-Bitonic sort on `M` elements in shared memory takes `O(M log² M)` steps — expensive, but `M` is fixed at 256, so it's a constant-time operation that runs entirely in shared memory (zero global memory traffic).
+Bitonic sort on `M` elements in shared memory takes `O(M log² M)` steps expensive, but `M` is fixed at 256, so it's a constant-time operation that runs entirely in shared memory (zero global memory traffic).
 
 ```
 Bitonic sort network for M=8 (3 stages, each stage has log₂ stage passes):
@@ -60,11 +60,11 @@ Result: median at position M/2
 ### Phase 2: Batch Partition
 
 The array between `lo` and `hi` is divided into batches of `blockDim.x`. For each batch:
-1. Each thread computes `flex_lt(pivot, vals[i], parity)` — whether its element should go right of pivot.
+1. Each thread computes `flex_lt(pivot, vals[i], parity)` whether its element should go right of pivot.
 2. An in-shared-memory prefix sum (cumsum!) computes each element's destination.
 3. Elements are scattered via shared memory, then written back to global memory.
 
-`parity` alternates with recursion depth. When `parity=true`, elements equal to pivot count as "right". When `parity=false`, they count as "left". This ensures that arrays with many duplicates converge — equal elements get split between the two halves in alternating recursion levels, preventing the O(n²) worst case for all-equal arrays.
+`parity` alternates with recursion depth. When `parity=true`, elements equal to pivot count as "right". When `parity=false`, they count as "left". This ensures that arrays with many duplicates converge equal elements get split between the two halves in alternating recursion levels, preventing the O(n²) worst case for all-equal arrays.
 
 ```
 Example: pivot=5, parity=false
@@ -81,7 +81,7 @@ After batch-partitioning, each batch is internally partitioned but the seams bet
 
 ### Phase 4: Dynamic Parallelism Recursion
 
-CUDA.jl uses `@cuda dynamic=true` — the GPU kernel itself launches two child kernels for the left and right partitions. This avoids round-tripping to the CPU between recursion levels. The recursion depth is bounded by `log₂(n)`.
+CUDA.jl uses `@cuda dynamic=true` the GPU kernel itself launches two child kernels for the left and right partitions. This avoids round-tripping to the CPU between recursion levels. The recursion depth is bounded by `log₂(n)`.
 
 **Complexity:**
 - Average: O(n log n), same as CPU quicksort
@@ -90,19 +90,19 @@ CUDA.jl uses `@cuda dynamic=true` — the GPU kernel itself launches two child k
 
 ### Why sortperm! is Not in CUDA.jl
 
-CUDA.jl's quicksort only sorts values. It does not produce a permutation index array. `sortperm` on CuArray falls to CPU (or errors with `allowscalar(false)`). This is a known limitation — confirmed by the audit `[CA-- -] sortperm!` in exhaustive_audit.txt. Users who need `sortperm` on CUDA must use workarounds.
+CUDA.jl's quicksort only sorts values. It does not produce a permutation index array. `sortperm` on CuArray falls to CPU (or errors with `allowscalar(false)`). This is a known limitation confirmed by the audit `[CA-- -] sortperm!` in exhaustive_audit.txt. Users who need `sortperm` on CUDA must use workarounds.
 
 ---
 
-## Algorithm 2: AcceleratedKernels.jl — GPU Merge Sort
+## Algorithm 2: AcceleratedKernels.jl GPU Merge Sort
 
-Source: `AcceleratedKernels.jl/src/sort/` — 6 files:
-- `merge_sort.jl` — core value sort
-- `merge_sort_by_key.jl` — sort values, carry along a key array
-- `merge_sortperm.jl` — sort an index array by values (sortperm)
-- `sort.jl` — public API: `AK.sort!`, `AK.sortperm!`
-- `utils.jl` — binary search, comparison helpers
-- `cpu_sample_sort.jl` — CPU fallback for small arrays
+Source: `AcceleratedKernels.jl/src/sort/` 6 files:
+- `merge_sort.jl` core value sort
+- `merge_sort_by_key.jl` sort values, carry along a key array
+- `merge_sortperm.jl` sort an index array by values (sortperm)
+- `sort.jl` public API: `AK.sort!`, `AK.sortperm!`
+- `utils.jl` binary search, comparison helpers
+- `cpu_sample_sort.jl` CPU fallback for small arrays
 
 ### Why Merge Sort (Not Quicksort) for AK.jl
 
@@ -118,7 +118,7 @@ Merge sort has a fundamentally different structure that maps much better to GPU:
 
 ### The Bottom-Up Iterative Merge Sort Algorithm
 
-AK.jl uses a **bottom-up** merge sort — no recursion, purely iterative. This is the standard approach for GPU sort.
+AK.jl uses a **bottom-up** merge sort no recursion, purely iterative. This is the standard approach for GPU sort.
 
 ```
 Pass 0: Sort blocks of size 1 → trivially sorted (nothing to do)
@@ -130,7 +130,7 @@ Pass k: Merge pairs of size-2^(k-1) blocks → sorted blocks of size 2^k
 Stop when block size >= n
 ```
 
-Total passes: `⌈log₂(n)⌉`. Each pass is a fully parallel GPU kernel — every pair of blocks is merged independently. No inter-block communication is needed within a pass.
+Total passes: `⌈log₂(n)⌉`. Each pass is a fully parallel GPU kernel every pair of blocks is merged independently. No inter-block communication is needed within a pass.
 
 ### Concrete Example: n=8
 
@@ -170,7 +170,7 @@ This "merge path" strategy (from Green et al., 2012) gives every thread O(log n)
 
 ### sortperm! via merge_sortperm.jl
 
-`sortperm!` is implemented by augmenting the merge: instead of sorting just values, the kernel co-sorts a companion index array initialized to `1:n`. Every comparison moves both `vals[i]` and `ix[i]` together. Since merge sort is stable, equal values preserve their original index ordering — the permutation is reproducible.
+`sortperm!` is implemented by augmenting the merge: instead of sorting just values, the kernel co-sorts a companion index array initialized to `1:n`. Every comparison moves both `vals[i]` and `ix[i]` together. Since merge sort is stable, equal values preserve their original index ordering the permutation is reproducible.
 
 ```julia
 # Initialize
