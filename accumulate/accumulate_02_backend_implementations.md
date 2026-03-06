@@ -78,8 +78,8 @@ Metal.jl also overrides `Base._accumulate!` and `accumulate_pairwise!` to ensure
 
 | Backend | Approach | Delegates to AK.jl? |
 |---------|----------|:-:|
-| CUDA.jl | Own `@cuda` two-pass kernel | ❌ |
-| AMDGPU.jl | 7-line delegation | ✅ |
-| oneAPI.jl | Delegation + `block_size=64` workaround | ✅ |
-| Metal.jl | Full Blelloch scratch (no atomics available) | ❌ |
-| **GPUArrays.jl (PR #2)** | **Delegation via `get_backend(A)`** | **✅** |
+| CUDA.jl | Own `@cuda` two-pass kernel | No |
+| AMDGPU.jl | 7-line delegation | Yes |
+| oneAPI.jl | Delegation + `block_size=64` workaround | Yes |
+| Metal.jl | Full Blelloch scratch (no atomics available) | No |
+| **GPUArrays.jl (PR #2)** | **Delegation via `get_backend(A)`** | **Yes** |
