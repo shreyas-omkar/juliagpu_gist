@@ -72,8 +72,8 @@ Confirmed by exhaustive audit of [`JuliaGPU/Metal.jl`](https://github.com/JuliaG
 
 | Backend | Has `reverse`? | Approach |
 |---------|:-:|---|
-| CUDA.jl | ✅ | Own `@cuda` kernel |
-| AMDGPU.jl | ✅ | Own `@roc` kernel (adapted from CUDA.jl) |
-| oneAPI.jl | ❌ | Falls to `Base` → ERROR / silent CPU |
-| Metal.jl | ❌ | Falls to `Base` → ERROR / silent CPU |
-| **GPUArrays.jl (PR #1)** | ✅ | **KA kernel at `AnyGPUArray`   fixes all** |
+| CUDA.jl | Yes | Own `@cuda` kernel |
+| AMDGPU.jl | Yes | Own `@roc` kernel (adapted from CUDA.jl) |
+| oneAPI.jl | No | Falls to `Base` → ERROR / silent CPU |
+| Metal.jl | No | Falls to `Base` → ERROR / silent CPU |
+| **GPUArrays.jl (PR #1)** | Yes | **KA kernel at `AnyGPUArray`   fixes all** |
