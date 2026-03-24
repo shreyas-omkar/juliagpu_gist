@@ -1,4 +1,4 @@
-# reverse / reverse!   Test Suite
+# `reverse` / `reverse!` Test Suite
 
 Added to `test/testsuite/base.jl` using the existing `compare` helper,  
 which runs the operation on both CPU and GPU and asserts numerical equality.
@@ -12,15 +12,15 @@ which runs the operation on both CPU and GPU and asserts numerical equality.
         @test compare(A -> reverse!(copy(A)), AT, rand(ET, 128))         # 1-D in-place
         @test compare(A -> reverse(A; dims=1), AT, rand(ET, 16, 16))     # 2-D dim=1
         @test compare(A -> reverse(A; dims=2), AT, rand(ET, 16, 16))     # 2-D dim=2
-        @test compare(A -> reverse(A; dims=:), AT, rand(ET, 8, 8, 8))   # all dims (3-D)
+        @test compare(A -> reverse(A; dims=:), AT, rand(ET, 8, 8, 8))    # all dims (3-D)
 
         # ── Edge cases ─────────────────────────────────────────────────
-        @test compare(reverse, AT, ET[])                                  # empty array
-        @test compare(reverse, AT, rand(ET, 1))                           # single element
+        @test compare(reverse, AT, ET[])                                 # empty array
+        @test compare(reverse, AT, rand(ET, 1))                          # single element
         @test compare(A -> reverse(A; dims=1), AT, rand(ET, 1, 16))      # single-element dim (no-op)
-        @test compare(reverse, AT, rand(ET, 7))                           # odd length
-        @test compare(A -> reverse!(copy(A)), AT, rand(ET, 7))            # odd length in-place
-        #   ↑ middle element must be left untouched   tests the lin_in < lin_out guard
+        @test compare(reverse, AT, rand(ET, 7))                          # odd length
+        @test compare(A -> reverse!(copy(A)), AT, rand(ET, 7))           # odd length in-place
+        #   ↑ middle element must be left untouched  tests the lin_in < lin_out guard
 
     end
 end
