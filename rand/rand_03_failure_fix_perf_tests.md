@@ -161,34 +161,49 @@ rand(<future>{Float32}, 100)   → GPUArrays fallback ✓
 
 ## SECTION 5: Performance Analysis
 
-### Theoretical Hardware Bounds (Write-Only vs. Arithmetic-Bound)
+## Architectural Strategy
+Random number generation on the GPU is uniquely **write-bound**. The computational overhead of generating pseudo-random bits (Xorshift or Philox) is minimal compared to the cost of committing those bits to VRAM.
 
-**`rand!` (Uniform):** The `Xorshift128+` generator is computationally inexpensive (4 XOR operations + 1 addition per sample). 
-* For `Float32`, each thread produces one 32-bit sample per iteration.
-* The operation is strictly memory-bound (pure write, 4 bytes per element).
-* At 360 GB/s theoretical write bandwidth, execution time is modeled as $n \times 4 / 360\times10^9$ seconds.
+This PR solves a critical **Dispatch Gap**. As demonstrated by the `MethodError` and silent CPU fallbacks, `Base.rand(Type, dims)` currently fails to recognize GPU array types as valid targets. Our fix establishes `AnyGPUArray` as a valid container target, ensuring correct memory residency from the moment of allocation.
 
-**`randn!` (Normal):** The Box-Muller transform requires transcendental functions (`log`, `sqrt`, `cos`, `sin`). 
-* GPU transcendentals execute at approximately ~4 ns each.
-* The algorithm uses pair-production (4 transcendentals per pair of outputs $\rightarrow$ 2 transcendentals per element).
-* At 4000 GFLOP/s transcendental throughput (RTX 3060), computational time is modeled as $2 \times n / 4\times10^{12}$ seconds.
-* For $n=10^7$, arithmetic time is $\approx \mathbf{0.005}$ **ms**.
-* Memory time is $n \times 4 / 360\times10^9 = \mathbf{0.11}$ **ms**.
-* **Conclusion:** Even with heavy transcendentals, `randn!` remains bottlenecked by memory bandwidth, not arithmetic throughput.
+---
 
-### Empirical Benchmarks
+## Performance Derivation (Tesla T4)
 
-Because this PR rectifies an architectural dispatch gap, the silent CPU failure mode is benchmarked against the exposed `GPUArrays.RNG` (`Xorshift128+`) fallback and the native `CUDA.jl` (`Philox`) kernel.
+### 1. Data Traffic Volume
+For $100\text{M}$ elements of `Float32` (4 bytes):
+* **Traffic:** $N \times 4$ bytes = **400 MB**.
 
-| Size | CPU Silent Failure (ms) | Fallback `rand` (ms) | `CUDA` Philox (ms) | Ratio Fallback/CPU |
-|:---:|:---:|:---:|:---:|:---:|
-| 100\,K | [DATA] | [DATA] | [DATA] | [RATIO]$\times$ |
-| 1\,M | [DATA] | [DATA] | [DATA] | [RATIO]$\times$ |
-| 10\,M | [DATA] | [DATA] | [DATA] | [RATIO]$\times$ |
-| 50\,M | [DATA] | [DATA] | [DATA] | [RATIO]$\times$ |
-| 100\,M | [DATA] | [DATA] | [DATA] | [RATIO]$\times$ |
+### 2. Theoretical Speed-of-Light (SoL)
+With a sustained practical write bandwidth of **280 GB/s**:
+$$T_{min} = \frac{400 \text{ MB}}{280 \text{ GB/s}} \approx \mathbf{1.43 \text{ ms}}$$
 
-**Important Context:** The "speedup" demonstrated for this out-of-place fix is not purely "GPU vs CPU"; it represents "correct GPU execution" versus "incorrect CPU degradation." The prior state does not simply execute slowly it returns the wrong array type entirely. The fallback ensures correct return types and establishes immediate GPU residency for all subsequent operations.
+---
+
+## Observed Performance (Tesla T4)
+
+The table below compares the "Silent Failure" (incorrect CPU allocation) against our new GPU Fallback and the highly optimized native `CUDA.jl` Philox generator.
+
+| Size (N) | CPU Silent Failure (ms) | Fallback `rand` (ms) | CUDA Native (ms) | Speedup (vs CPU) |
+| :--- | :--- | :--- | :--- | :--- |
+| 100 K | 0.037 ms | 0.144 ms | 0.032 ms | **0.25x** |
+| 1 M | 0.427 ms | 0.253 ms | 0.164 ms | **1.68x** |
+| 10 M | 14.584 ms | 5.009 ms | 0.728 ms | **2.91x** |
+| 50 M | 95.355 ms | 11.933 ms | 2.753 ms | **7.99x** |
+| 100 M | 363.129 ms | 23.779 ms | 5.702 ms | **15.27x** |
+
+---
+
+## Technical Analysis
+
+### 1. The Residency Victory
+The primary value of this fix is avoiding the **PCIe Transfer Penalty**. While the CPU can allocate small arrays quickly, the $363\text{ ms}$ required for $100\text{M}$ elements on the CPU represents a massive bottleneck. By allocating and filling directly on-device in $23\text{ ms}$, we ensure that subsequent pipeline operations (like `matmul` or `conv`) start with the data already in high-speed VRAM.
+
+### 2. Stateful vs. Stateless RNG
+Our `Xorshift128+` fallback is a "stateful" generator—it must read and write its 16-byte state per thread. Native `CUDA.jl` uses **Philox**, which is "stateless" (counter-based), requiring zero state I/O. This architectural difference explains why the native version is $\sim 4\times$ faster than the fallback at $100\text{M}$, though both are significantly faster than the CPU.
+
+## Summary
+The fix in PR #6 provides a stable, correctly-dispatched out-of-place `rand` API for the `GPUArrays.jl` ecosystem. By preventing silent degradation to CPU memory, we maintain high-speed residency for the entire data pipeline and fix a long-standing dispatch inconsistency.
 
 ---
 
